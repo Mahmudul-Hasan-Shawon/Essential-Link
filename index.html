@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Essential Links – Minimalist Luxury</title>
+
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        // Neutral Palette
+                        stone: { 50: '#fafaf9', 100: '#f5f5f4', 200: '#e7e5e4', 900: '#1c1917' },
+                        slate: { 50: '#f8fafc', 900: '#0f172a', 950: '#020617' },
+                        // Luxury Accent
+                        accent: { 600: '#4f46e5', 700: '#4338ca' } // Indigo
+                    },
+                    boxShadow: {
+                        // Multi-layered soft shadows for "No Border" look
+                        'luxury': '0 2px 15px -3px rgba(0, 0, 0, 0.07), 0 10px 20px -2px rgba(0, 0, 0, 0.04)',
+                        'luxury-hover': '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.04)',
+                        'glass': '0 8px 32px 0 rgba(31, 38, 135, 0.15)',
+                    },
+                    animation: {
+                        'slide-up': 'slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+                        'fade-in': 'fadeIn 0.4s ease-out forwards',
+                    },
+                    keyframes: {
+                        slideUp: {
+                            '0%': { opacity: 0, transform: 'translateY(20px)' },
+                            '100%': { opacity: 1, transform: 'translateY(0)' },
+                        },
+                        fadeIn: {
+                            '0%': { opacity: 0 },
+                            '100%': { opacity: 1 },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <!-- SortableJS -->
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
+
+    <style>
+        /* --- Aesthetic Core --- */
+        body {
+            /* Light Mode Default */
+            background-color: #fafaf9; /* Stone 50 */
+            color: #1c1917;
+        }
+
+        /* Dark Mode Override */
+        .dark body {
+            background-color: #0f172a; /* Slate 900 */
+            color: #f8fafc;
+        }
+
+        /* Glassmorphism Header */
+        .glass-header {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-bottom: 1px solid rgba(0,0,0,0.05);
+        }
+        .dark .glass-header {
+            background: rgba(15, 23, 42, 0.85);
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+
+        /* The Card: NO BORDER Rule */
+        .card-luxury {
+            background-color: white;
+            /* No border */
+            transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+        }
+        .dark .card-luxury {
+            background-color: #1e293b; /* Slate 800 */
+        }
+
+        .card-luxury:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15);
+        }
+
+        /* Dropdown Menu Animation */
+        .dropdown-enter {
+            animation: dropDown 0.2s ease-out forwards;
+            transform-origin: top;
+        }
+        @keyframes dropDown {
+            from { opacity: 0; transform: scale(0.98) translateY(-5px); }
+            to { opacity: 1; transform: scale(1) translateY(0); }
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #e7e5e4; border-radius: 10px; }
+        .dark ::-webkit-scrollbar-thumb { background: #334155; }
+        ::-webkit-scrollbar-thumb:hover { background: #d6d3d1; }
+        .dark ::-webkit-scrollbar-thumb:hover { background: #475569; }
+
+        /* Image Skeleton */
+        .skeleton-shimmer {
+            background: linear-gradient(90deg, #f5f5f4 25%, #e7e5e4 50%, #f5f5f4 75%);
+            background-size: 200% 100%;
+            animation: shimmer 1.5s infinite;
+        }
+        .dark .skeleton-shimmer {
+            background: linear-gradient(90deg, #1e293b 25%, #334155 50%, #1e293b 75%);
+        }
+        @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+    </style>
+</head>
+<body class="antialiased min-h-screen selection:bg-indigo-500 selection:text-white transition-colors duration-500">
+
+    <!-- Background Ambient Glow -->
+    <div class="fixed inset-0 -z-10 overflow-hidden pointer-events-none">
+        <div class="absolute -top-[20%] -left-[10%] w-[500px] h-[500px] rounded-full bg-stone-200/40 dark:bg-indigo-900/10 blur-[100px]"></div>
+        <div class="absolute bottom-[0%] right-[0%] w-[600px] h-[600px] rounded-full bg-stone-300/40 dark:bg-slate-800/40 blur-[120px]"></div>
+    </div>
+
+    <!-- Header -->
+    <header class="fixed top-0 w-full z-40 glass-header transition-all duration-300">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
+            
+            <!-- Logo -->
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-stone-900 dark:bg-white text-white dark:text-stone-900 flex items-center justify-center shadow-lg">
+                    <i class="fa-solid fa-cube text-lg"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold tracking-tight text-stone-900 dark:text-white">Essential<span class="font-light">Links</span></h1>
+                </div>
+            </div>
+
+            <!-- Controls -->
+            <div class="flex items-center gap-4">
+                
+                <!-- Search -->
+                <div class="hidden md:block relative group">
+                    <i class="fa-solid fa-search absolute left-3.5 top-1/2 -translate-y-1/2 text-stone-400 dark:text-slate-500 transition-colors text-sm"></i>
+                    <input type="text" id="searchInput" 
+                        class="pl-10 pr-4 py-2 w-64 rounded-full bg-stone-100 dark:bg-slate-800/50 text-stone-900 dark:text-white text-sm placeholder-stone-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 transition-all"
+                        placeholder="Search resources...">
+                </div>
+
+                <!-- Dropdown Wrapper (Fixed Positioning) -->
+                <div class="relative z-50" id="dropdownWrapper">
+                    <button onclick="toggleDropdown()" class="flex items-center gap-2 px-4 py-2 rounded-full bg-stone-100 dark:bg-slate-800/50 hover:bg-stone-200 dark:hover:bg-slate-700/50 transition-colors text-stone-700 dark:text-stone-200 text-sm font-medium focus:outline-none">
+                        <span id="currentFilter">All Categories</span>
+                        <i class="fa-solid fa-chevron-down text-xs opacity-60 transition-transform duration-200" id="chevron"></i>
+                    </button>
+
+                    <!-- Dropdown Menu (Fixed z-index and positioning) -->
+                    <div id="dropdownMenu" class="absolute right-0 mt-2 w-48 bg-white dark:bg-slate-800 rounded-2xl shadow-luxury border border-stone-100 dark:border-slate-700/50 overflow-hidden hidden transform origin-top-right transition-all">
+                        <div class="py-1">
+                            <button onclick="setFilter('')" class="w-full text-left px-4 py-3 text-sm font-medium text-stone-600 dark:text-stone-300 hover:bg-stone-50 dark:hover:bg-slate-700/50 transition-colors">All Categories</button>
+                            <button onclick="setFilter('Design')" class="w-full text-left px-4 py-3 text-sm font-medium text-stone-600 dark:text-stone-300 hover:bg-stone-50 dark:hover:bg-slate-700/50 transition-colors">Design</button>
+                            <button onclick="setFilter('Dev')" class="w-full text-left px-4 py-3 text-sm font-medium text-stone-600 dark:text-stone-300 hover:bg-stone-50 dark:hover:bg-slate-700/50 transition-colors">Development</button>
+                            <button onclick="setFilter('Tools')" class="w-full text-left px-4 py-3 text-sm font-medium text-stone-600 dark:text-stone-300 hover:bg-stone-50 dark:hover:bg-slate-700/50 transition-colors">Tools</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="h-6 w-px bg-stone-300 dark:bg-slate-700 mx-1"></div>
+
+                <button onclick="toggleTheme()" class="w-9 h-9 rounded-full flex items-center justify-center text-stone-500 dark:text-slate-400 hover:bg-stone-200 dark:hover:bg-slate-700 transition-colors">
+                    <i class="fa-regular fa-sun dark:hidden"></i>
+                    <i class="fa-regular fa-moon hidden dark:block"></i>
+                </button>
+
+                <button onclick="openModal()" class="bg-stone-900 dark:bg-white text-white dark:text-stone-900 px-4 py-2 rounded-full text-sm font-semibold shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300">
+                    Add Link
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-32 pb-20 min-h-screen">
+        
+        <!-- Grid Container -->
+        <div id="grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <!-- Items injected via JS -->
+        </div>
+
+        <!-- Empty State -->
+        <div id="emptyState" class="hidden flex-col items-center justify-center py-24 text-center animate-fade-in">
+            <div class="w-16 h-16 rounded-full bg-stone-100 dark:bg-slate-800 flex items-center justify-center mb-6">
+                <i class="fa-regular fa-folder-open text-2xl text-stone-400"></i>
+            </div>
+            <h3 class="text-xl font-bold text-stone-900 dark:text-white mb-2">No results found</h3>
+            <p class="text-stone-500 dark:text-slate-400">Try adjusting your search terms or add a new resource.</p>
+        </div>
+    </main>
+
+    <!-- Add Link Modal -->
+    <div id="modal" class="fixed inset-0 z-[60] hidden">
+        <div class="absolute inset-0 bg-stone-900/20 dark:bg-black/40 backdrop-blur-sm transition-opacity opacity-0" id="modalBackdrop"></div>
+        <div class="absolute inset-0 flex items-center justify-center p-4">
+            <div class="bg-white dark:bg-slate-800 w-full max-w-md rounded-3xl shadow-2xl transform scale-95 opacity-0 transition-all duration-300 overflow-hidden" id="modalContent">
+                <div class="p-8">
+                    <h2 class="text-2xl font-bold text-stone-900 dark:text-white mb-6">Add New Resource</h2>
+                    <form id="addForm" class="space-y-4">
+                        <div>
+                            <label class="block text-xs font-semibold uppercase tracking-wider text-stone-400 dark:text-slate-500 mb-2">URL</label>
+                            <input type="url" id="urlInput" required class="w-full px-4 py-3 rounded-xl bg-stone-50 dark:bg-slate-900/50 border-transparent focus:bg-white dark:focus:bg-slate-900 focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all text-stone-900 dark:text-white" placeholder="https://example.com">
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs font-semibold uppercase tracking-wider text-stone-400 dark:text-slate-500 mb-2">Group</label>
+                                <select id="groupInput" class="w-full px-4 py-3 rounded-xl bg-stone-50 dark:bg-slate-900/50 border-transparent focus:bg-white dark:focus:bg-slate-900 focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all text-stone-900 dark:text-white appearance-none cursor-pointer">
+                                    <option value="Design">Design</option>
+                                    <option value="Dev">Development</option>
+                                    <option value="Tools">Tools</option>
+                                    <option value="Inspiration">Inspiration</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold uppercase tracking-wider text-stone-400 dark:text-slate-500 mb-2">Tags</label>
+                                <input type="text" id="tagsInput" class="w-full px-4 py-3 rounded-xl bg-stone-50 dark:bg-slate-900/50 border-transparent focus:bg-white dark:focus:bg-slate-900 focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all text-stone-900 dark:text-white" placeholder="ui, css...">
+                            </div>
+                        </div>
+                        <div class="pt-4 flex gap-3">
+                            <button type="button" onclick="closeModal()" class="flex-1 py-3 rounded-xl font-medium text-stone-500 hover:bg-stone-100 dark:hover:bg-slate-700 transition-colors">Cancel</button>
+                            <button type="submit" class="flex-1 py-3 rounded-xl bg-stone-900 dark:bg-white text-white dark:text-stone-900 font-bold shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all">Save</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- State ---
+        let links = JSON.parse(localStorage.getItem('links')) || [
+            { url: 'https://uiverse.io/', group: 'Design', tags: ['ui', 'css'] },
+            { url: 'https://www.flaticon.com/', group: 'Design', tags: ['icons', 'svg'] },
+            { url: 'https://github.com/', group: 'Dev', tags: ['code', 'git'] },
+            { url: 'https://tailwindcss.com/', group: 'Dev', tags: ['css', 'framework'] },
+            { url: 'https://dribbble.com/', group: 'Inspiration', tags: ['design', 'art'] },
+            { url: 'https://figma.com/', group: 'Tools', tags: ['design', 'tool'] }
+        ];
+
+        let currentFilter = '';
+        const grid = document.getElementById('grid');
+
+        // --- Sortable ---
+        new Sortable(grid, {
+            animation: 200,
+            ghostClass: 'opacity-40',
+            onEnd: (evt) => {
+                const item = evt.item;
+                // Reorder logic based on DOM order
+                const newLinks = Array.from(grid.children).map(card => {
+                    const url = card.dataset.url;
+                    return links.find(l => l.url === url);
+                }).filter(Boolean);
+                
+                links = newLinks;
+                localStorage.setItem('links', JSON.stringify(links));
+            }
+        });
+
+        // --- Core Functions ---
+
+        async function render() {
+            grid.innerHTML = '';
+            const q = document.getElementById('searchInput').value.toLowerCase();
+            
+            // Filter
+            const filtered = links.filter(l => {
+                const matchSearch = l.url.toLowerCase().includes(q) || l.tags.some(t => t.toLowerCase().includes(q));
+                const matchGroup = currentFilter === '' || l.group === currentFilter;
+                return matchSearch && matchGroup;
+            });
+
+            if (filtered.length === 0) {
+                document.getElementById('emptyState').classList.remove('hidden');
+                document.getElementById('emptyState').classList.add('flex');
+                return;
+            } else {
+                document.getElementById('emptyState').classList.add('hidden');
+                document.getElementById('emptyState').classList.remove('flex');
+            }
+
+            // Grouping Rendering
+            const groups = {};
+            filtered.forEach(l => { if(!groups[l.group]) groups[l.group] = []; groups[l.group].push(l); });
+
+            for (const groupName in groups) {
+                const groupHeader = document.createElement('div');
+                groupHeader.className = 'col-span-1 md:col-span-2 lg:col-span-3 text-xs font-bold uppercase tracking-widest text-stone-400 dark:text-slate-500 mb-4 pl-1 animate-slide-up';
+                groupHeader.textContent = groupName;
+                grid.appendChild(groupHeader);
+
+                for (const link of groups[groupName]) {
+                    const card = document.createElement('div');
+                    card.className = 'card-luxury rounded-3xl p-6 flex flex-col relative group opacity-0 animate-slide-up';
+                    card.dataset.url = link.url;
+                    card.style.animationDelay = `${Math.random() * 200}ms`;
+
+                    // Skeleton Load
+                    card.innerHTML = `
+                        <div class="w-full h-40 rounded-2xl skeleton-shimmer mb-6"></div>
+                        <div class="w-3/4 h-6 rounded-lg skeleton-shimmer mb-3"></div>
+                        <div class="w-1/2 h-4 rounded-lg skeleton-shimmer"></div>
+                    `;
+                    grid.appendChild(card);
+
+                    // Fetch Meta
+                    const meta = await fetchMeta(link.url);
+                    const domain = new URL(link.url).hostname.replace('www.', '');
+                    const title = meta.title || domain;
+                    
+                    // Tags HTML
+                    const tagsHtml = link.tags.map(t => `<span class="px-2 py-1 bg-stone-100 dark:bg-slate-700/50 text-xs font-medium text-stone-500 dark:text-slate-400 rounded-md">#${t}</span>`).join('');
+
+                    card.innerHTML = `
+                        <div class="relative mb-6 overflow-hidden rounded-2xl aspect-video">
+                            ${meta.image?.url 
+                                ? `<img src="${meta.image.url}" alt="${title}" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105">`
+                                : `<div class="w-full h-full bg-stone-100 dark:bg-slate-700 flex items-center justify-center text-stone-300 dark:text-slate-500"><i class="fa-solid fa-globe text-3xl opacity-20"></i></div>`
+                            }
+                            <!-- Delete Button -->
+                            <button onclick="deleteLink('${link.url}')" class="absolute top-3 right-3 w-8 h-8 rounded-full bg-white/90 dark:bg-black/50 text-red-500 opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center shadow-sm hover:scale-110">
+                                <i class="fa-solid fa-trash text-xs"></i>
+                            </button>
+                        </div>
+
+                        <div class="flex-1">
+                            <h3 class="text-xl font-bold text-stone-900 dark:text-white mb-2 leading-tight tracking-tight" title="${title}">${title}</h3>
+                            <p class="text-stone-500 dark:text-slate-400 text-sm line-clamp-2 leading-relaxed">${meta.description || 'No description available for this resource.'}</p>
+                        </div>
+
+                        <div class="mt-6 pt-6 border-t border-stone-100 dark:border-slate-700/50 flex items-center justify-between">
+                            <div class="flex gap-2 flex-wrap">${tagsHtml}</div>
+                            <a href="${link.url}" target="_blank" class="w-10 h-10 rounded-full bg-stone-900 dark:bg-white text-white dark:text-stone-900 flex items-center justify-center hover:scale-110 transition-transform shadow-md">
+                                <i class="fa-solid fa-arrow-up-right-from-square text-sm"></i>
+                            </a>
+                        </div>
+                    `;
+                }
+            }
+        }
+
+        async function fetchMeta(url) {
+            try {
+                const r = await fetch(`https://api.microlink.io/?url=${encodeURIComponent(url)}`);
+                const { data } = await r.json();
+                return data;
+            } catch { return {}; }
+        }
+
+        // --- Interactions ---
+
+        // Dropdown Logic (Fixed)
+        const dropdownWrapper = document.getElementById('dropdownWrapper');
+        const dropdownMenu = document.getElementById('dropdownMenu');
+        const chevron = document.getElementById('chevron');
+
+        function toggleDropdown() {
+            const isHidden = dropdownMenu.classList.contains('hidden');
+            if (isHidden) {
+                dropdownMenu.classList.remove('hidden');
+                dropdownMenu.classList.add('dropdown-enter');
+                chevron.style.transform = 'rotate(180deg)';
+            } else {
+                dropdownMenu.classList.add('hidden');
+                chevron.style.transform = 'rotate(0deg)';
+            }
+        }
+
+        function setFilter(val) {
+            currentFilter = val;
+            document.getElementById('currentFilter').textContent = val === '' ? 'All Categories' : val;
+            toggleDropdown();
+            render();
+        }
+
+        // Close dropdown when clicking outside
+        window.addEventListener('click', (e) => {
+            if (!dropdownWrapper.contains(e.target)) {
+                dropdownMenu.classList.add('hidden');
+                chevron.style.transform = 'rotate(0deg)';
+            }
+        });
+
+        document.getElementById('searchInput').addEventListener('input', render);
+
+        // Modal Logic
+        const modal = document.getElementById('modal');
+        const backdrop = document.getElementById('modalBackdrop');
+        const content = document.getElementById('modalContent');
+
+        function openModal() {
+            modal.classList.remove('hidden');
+            setTimeout(() => {
+                backdrop.classList.remove('opacity-0');
+                content.classList.remove('scale-95', 'opacity-0');
+                content.classList.add('scale-100', 'opacity-100');
+            }, 10);
+        }
+
+        function closeModal() {
+            backdrop.classList.add('opacity-0');
+            content.classList.remove('scale-100', 'opacity-100');
+            content.classList.add('scale-95', 'opacity-0');
+            setTimeout(() => modal.classList.add('hidden'), 300);
+            document.getElementById('addForm').reset();
+        }
+
+        document.getElementById('addForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const url = document.getElementById('urlInput').value;
+            const group = document.getElementById('groupInput').value;
+            const tags = document.getElementById('tagsInput').value.split(',').map(t => t.trim()).filter(Boolean);
+            
+            links.unshift({ url, group, tags });
+            localStorage.setItem('links', JSON.stringify(links));
+            closeModal();
+            render();
+        });
+
+        function deleteLink(url) {
+            if(confirm('Remove this link?')) {
+                links = links.filter(l => l.url !== url);
+                localStorage.setItem('links', JSON.stringify(links));
+                render();
+            }
+        }
+
+        // Theme Logic (Fixed)
+        function toggleTheme() {
+            document.documentElement.classList.toggle('dark');
+            localStorage.theme = document.documentElement.classList.contains('dark') ? 'dark' : 'light';
+        }
+
+        // Initialize
+        if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            document.documentElement.classList.add('dark');
+        }
+        render();
+
+    </script>
+</body>
+</html>
