@@ -497,503 +497,531 @@
     </div>
     
 
-    <script>
-        // --- State ---
-        let links = JSON.parse(localStorage.getItem('links')) || [
-            { url: 'https://uiverse.io/', group: 'Design', tags: ['ui', 'css'] },
-            { url: 'https://www.flaticon.com/', group: 'Design', tags: ['icons', 'svg'] },
-            { url: 'https://github.com/', group: 'Dev', tags: ['code', 'git'] },
-            {url: 'https://tailwindcss.com/', group: 'Dev', tags: ['css', 'framework'] },
-            { url: 'https://dribbble.com/', group: 'Inspiration', tags: ['design', 'art'] },
-            { url: 'https://figma.com/', group: 'Tools', tags: ['design', 'tool'] }
-        ];
+<script>
+    // --- Configuration ---
+    const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwaNmT8_djMOqwCHDYcP617GET3QahWUsJDH9fIR1HooCjy6fWa-lt0o-zG2UUi5QrE/exec'; // Replace with your Apps Script URL
+    let links = [];
+    let currentFilter = '';
+    let urlToDelete = null;
+    const container = document.getElementById('mainContainer');
+    const emptyState = document.getElementById('emptyState');
+    const loadingPopup = document.getElementById('loadingPopup');
 
-        let currentFilter = '';
-        let urlToDelete = null;
-        const container = document.getElementById('mainContainer');
-        const emptyState = document.getElementById('emptyState');
-        const loadingPopup = document.getElementById('loadingPopup');
+    // --- Loader Logic ---
+    function showLoader() {
+        loadingPopup.classList.remove('pointer-events-none', 'opacity-0');
+        loadingPopup.style.display = 'flex';
+    }
+    function hideLoader() {
+        loadingPopup.classList.add('opacity-0');
+        setTimeout(() => {
+            loadingPopup.style.display = 'none';
+            loadingPopup.classList.add('pointer-events-none');
+        }, 500);
+    }
 
-        // --- Hardcoded Admin Credentials (You can change these) ---
-        const ADMIN_CREDS = {
-            id: 'admin',
-            pass: '1234'
-        };
-
-        // --- Loader Logic ---
-        function showLoader() {
-            loadingPopup.classList.remove('pointer-events-none', 'opacity-0');
-            loadingPopup.style.display = 'flex';
+    // --- Edit Mode Logic ---
+    const editToggle = document.getElementById('editToggle');
+    
+    editToggle.addEventListener('change', (e) => {
+        if (e.target.checked) {
+            e.target.checked = false;
+            openLoginModal();
+        } else {
+            disableEditMode();
         }
-        function hideLoader() {
-            loadingPopup.classList.add('opacity-0');
-            setTimeout(() => {
-                loadingPopup.style.display = 'none';
-                loadingPopup.classList.add('pointer-events-none');
-            }, 500);
+    });
+
+    function enableEditMode() {
+        document.body.classList.add('edit-mode');
+        editToggle.checked = true;
+        showToast('Edit Mode: Active', 'success');
+    }
+
+    function disableEditMode() {
+        document.body.classList.remove('edit-mode');
+        editToggle.checked = false;
+        if(document.body.classList.contains('edit-mode')) {
+            showToast('Edit Mode: Off', 'info');
         }
+    }
 
-        // --- Edit Mode Logic WITH SECURITY ---
-        const editToggle = document.getElementById('editToggle');
-        
-        editToggle.addEventListener('change', (e) => {
-            if (e.target.checked) {
-                // User wants to turn ON -> Check auth
-                // 1. Immediately uncheck to prevent "stuck" state if they cancel or fail
-                e.target.checked = false;
-                // 2. Open Login Modal
-                openLoginModal();
-            } else {
-                // User wants to turn OFF
-                disableEditMode();
-            }
-        });
-
-        function enableEditMode() {
-            document.body.classList.add('edit-mode');
-            editToggle.checked = true; // Visually turn on the toggle
-            showToast('Edit Mode: Active', 'success');
-        }
-
-        function disableEditMode() {
-            document.body.classList.remove('edit-mode');
-            editToggle.checked = false;
-            // Only show toast if it was actually on, to avoid noise on initial load
-            if(document.body.classList.contains('edit-mode')) {
-                showToast('Edit Mode: Off', 'info');
-            }
-        }
-
-        // --- Login Modal Logic ---
-        const loginModal = document.getElementById('loginModal');
-        const loginBackdrop = document.getElementById('loginModalBackdrop');
-        const loginContent = document.getElementById('loginModalContent');
-
-        function openLoginModal() {
-            loginModal.classList.remove('hidden');
-            setTimeout(() => {
-                loginBackdrop.classList.remove('opacity-0');
-                loginContent.classList.remove('scale-95', 'opacity-0');
-                loginContent.classList.add('scale-100', 'opacity-100');
-            }, 10);
-            document.getElementById('loginId').focus();
-        }
-
-        function closeLoginModal() {
-            loginBackdrop.classList.add('opacity-0');
-            loginContent.classList.remove('scale-100', 'opacity-100');
-            loginContent.classList.add('scale-95', 'opacity-0');
-            setTimeout(() => {
-                loginModal.classList.add('hidden');
-                document.getElementById('loginForm').reset();
-            }, 300);
-        }
-
-        document.getElementById('loginForm').addEventListener('submit', (e) => {
-            e.preventDefault();
-            const idInput = document.getElementById('loginId').value;
-            const passInput = document.getElementById('loginPass').value;
-
-            if (idInput === ADMIN_CREDS.id && passInput === ADMIN_CREDS.pass) {
-                // Success
-                closeLoginModal();
-                enableEditMode();
-            } else {
-                // Failure
-                showToast('Invalid ID or Password', 'error');
-                // Shake animation logic could go here
-                const content = document.getElementById('loginModalContent');
-                content.classList.add('translate-x-[-10px]');
-                setTimeout(() => {
-                    content.classList.remove('translate-x-[-10px]');
-                    content.classList.add('translate-x-[10px]');
-                    setTimeout(() => {
-                        content.classList.remove('translate-x-[10px]');
-                    }, 100);
-                }, 100);
-            }
-        });
-
-        // --- Refresh Logic ---
-        function refreshData() {
-            const icon = document.getElementById('refreshIcon');
-            icon.classList.add('animate-spin');
-            showLoader();
-            setTimeout(() => {
-                icon.classList.remove('animate-spin');
-                render(); 
-                hideLoader();
-                showToast('Dashboard updated', 'success');
-            }, 600); 
-        }
-
-        // --- Core Functions ---
-        async function render() {
-            container.innerHTML = '';
-            const q = document.getElementById('searchInput').value.toLowerCase();
+    // --- Google Sheets API Functions ---
+    async function fetchFromGoogleSheets(params) {
+        try {
+            const url = new URL(GOOGLE_SCRIPT_URL);
+            Object.keys(params).forEach(key => url.searchParams.append(key, params[key]));
             
-            const clearBtn = document.getElementById('clearSearch');
-            if (q.length > 0) clearBtn.classList.remove('hidden');
-            else clearBtn.classList.add('hidden');
+            const response = await fetch(url);
+            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+            
+            return await response.json();
+        } catch (error) {
+            console.error('Google Sheets API Error:', error);
+            showToast('Failed to connect to server', 'error');
+            throw error;
+        }
+    }
 
-            const filtered = links.filter(l => {
-                const matchSearch = l.url.toLowerCase().includes(q) || l.tags.some(t => t.toLowerCase().includes(q));
-                const matchGroup = currentFilter === '' || l.group === currentFilter;
-                return matchSearch && matchGroup;
-            });
-
-            if (filtered.length === 0) {
-                emptyState.classList.remove('hidden');
-                emptyState.classList.add('flex');
-                return;
+    async function fetchLinks() {
+        showLoader();
+        try {
+            const result = await fetchFromGoogleSheets({ action: 'getLinks' });
+            if (result.success) {
+                links = result.links;
+                await render();
             } else {
-                emptyState.classList.add('hidden');
-                emptyState.classList.remove('flex');
-            }
-
-            const groups = {};
-            filtered.forEach(l => { if(!groups[l.group]) groups[l.group] = []; groups[l.group].push(l); });
-
-            for (const groupName in groups) {
-                const section = document.createElement('div');
-                section.className = 'mb-12 animate-slide-up';
-
-                const header = document.createElement('div');
-                header.className = 'flex items-center gap-3 mb-6 pl-1';
-                header.innerHTML = `
-                    <span class="w-2 h-2 rounded-full bg-violet-500 shadow-[0_0_10px_rgba(139,92,246,0.6)]"></span>
-                    <h2 class="text-xs font-bold uppercase tracking-widest text-violet-600 dark:text-violet-400">${groupName}</h2>
-                `;
-                section.appendChild(header);
-
-                const grid = document.createElement('div');
-                grid.className = 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6';
-
-                for (const link of groups[groupName]) {
-                    const card = document.createElement('div');
-                    card.className = 'glass-card rounded-3xl p-6 relative group h-full opacity-0';
-                    card.style.animation = `slideUp 0.5s ease-out forwards ${Math.random() * 0.2}s`;
-
-                    card.innerHTML = `
-                        <div class="w-full h-48 rounded-2xl skeleton mb-6"></div>
-                        <div class="flex items-center gap-3 mb-4">
-                             <div class="w-12 h-12 rounded-full skeleton"></div>
-                             <div class="w-1/2 h-6 rounded-lg skeleton"></div>
-                        </div>
-                        <div class="w-full h-3 rounded-lg skeleton mb-2"></div>
-                        <div class="w-2/3 h-3 rounded-lg skeleton"></div>
-                    `;
-                    grid.appendChild(card);
-
-                    const meta = await fetchMeta(link.url);
-                    const domain = new URL(link.url).hostname.replace('www.', '');
-                    const title = meta.title || domain;
-                    const logoUrl = `https://www.google.com/s2/favicons?domain=${domain}&sz=64`;
-                    const tagsHtml = link.tags.map(t => `<span class="px-2 py-1 bg-violet-50/80 dark:bg-violet-900/20 border border-violet-100 dark:border-violet-800/30 text-xs font-medium text-violet-600 dark:text-violet-300 rounded-md">#${t}</span>`).join('');
-
-                    card.innerHTML = `
-                        <div class="relative mb-6 overflow-hidden rounded-2xl aspect-video bg-stone-100 dark:bg-slate-800/50 border border-white/20 dark:border-white/5 group-hover:border-violet-200/50 transition-colors">
-                            ${meta.image?.url 
-                                ? `<img src="${meta.image.url}" alt="${title}" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105">`
-                                : `<div class="w-full h-full flex items-center justify-center bg-gradient-to-br from-violet-50 to-white dark:from-slate-800 dark:to-slate-900"><i class="fa-solid fa-globe text-3xl text-violet-200 dark:text-slate-600"></i></div>`
-                            }
-                            <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                            <div class="card-actions absolute top-4 right-4 flex gap-2">
-                                <button onclick="editLink('${link.url}')" class="w-10 h-10 rounded-full bg-white/20 dark:bg-black/80 backdrop-blur-md text-blue-500 shadow-lg border border-white/20 dark:border-white/10 flex items-center justify-center hover:bg-blue-500 hover:text-white transition-all" title="Edit">
-                                    <i class="fa-solid fa-pen text-sm"></i>
-                                </button>
-                                <button onclick="promptDelete('${link.url}')" class="w-10 h-10 rounded-full bg-white/20 dark:bg-black/80 backdrop-blur-md text-red-500 shadow-lg border border-white/20 dark:border-white/10 flex items-center justify-center hover:bg-red-500 hover:text-white transition-all" title="Delete">
-                                    <i class="fa-solid fa-trash text-sm"></i>
-                                </button>
-                            </div>
-                        </div>
-
-                        <div class="flex-1">
-                            <div class="flex items-start gap-3 mb-3">
-                                <div class="w-12 h-12 rounded-full bg-white dark:bg-slate-800 shadow-sm flex items-center justify-center border border-stone-100 dark:border-slate-700 overflow-hidden shrink-0 mt-1">
-                                    <img src="${logoUrl}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex'" class="w-6 h-6 object-contain">
-                                    <i class="fa-solid fa-globe text-stone-300 dark:text-slate-600 hidden absolute text-xs"></i>
-                                </div>
-                                <h3 class="text-lg font-bold text-stone-900 dark:text-white leading-snug tracking-tight" title="${title}">${title}</h3>
-                            </div>
-                            <p class="text-stone-500 dark:text-slate-400 text-sm line-clamp-2 leading-relaxed mb-6 h-10">${meta.description || 'No description available.'}</p>
-                        </div>
-
-                        <div class="mt-auto pt-5 border-t border-stone-100/50 dark:border-slate-700/50 flex items-center justify-between">
-                            <div class="flex gap-2 flex-wrap">${tagsHtml}</div>
-                            <div class="flex gap-2">
-                                <button onclick="copyToClipboard('${link.url}', this)" class="w-10 h-10 rounded-xl bg-stone-100 dark:bg-slate-700 text-stone-500 dark:text-slate-400 hover:bg-violet-100 hover:text-violet-600 dark:hover:bg-violet-900/30 dark:hover:text-violet-300 transition-colors flex items-center justify-center" title="Copy">
-                                    <i class="fa-regular fa-copy text-sm"></i>
-                                </button>
-                                <a href="${link.url}" target="_blank" class="w-10 h-10 rounded-xl bg-violet-100 dark:bg-violet-600 text-violet-600 dark:text-white hover:scale-110 hover:shadow-lg hover:shadow-violet-500/30 transition-all duration-300 flex items-center justify-center" title="Visit">
-                                    <i class="fa-solid fa-arrow-up-right-from-square text-sm"></i>
-                                </a>
-                            </div>
-                        </div>
-                    `;
+                showToast('Failed to load links', 'error');
+                // Fallback to localStorage if available
+                const localLinks = JSON.parse(localStorage.getItem('links'));
+                if (localLinks && localLinks.length > 0) {
+                    links = localLinks;
+                    await render();
+                    showToast('Using local backup data', 'warning');
                 }
-                section.appendChild(grid);
-                container.appendChild(section);
             }
+        } catch (error) {
+            showToast('Connection error', 'error');
+        } finally {
+            hideLoader();
         }
+    }
 
-        async function fetchMeta(url) {
-            try {
-                const r = await fetch(`https://api.microlink.io/?url=${encodeURIComponent(url)}`);
-                const { data } = await r.json();
-                return data;
-            } catch { return {}; }
+    async function verifyLogin(id, password) {
+        try {
+            const result = await fetchFromGoogleSheets({ 
+                action: 'verifyLogin', 
+                id: id, 
+                password: password 
+            });
+            
+            return result.authenticated === true;
+        } catch (error) {
+            showToast('Login failed', 'error');
+            return false;
         }
+    }
 
-        // --- Interactions ---
-        document.getElementById('clearSearch').addEventListener('click', () => {
-            document.getElementById('searchInput').value = '';
-            document.getElementById('searchInput').focus();
-            render();
+    async function addLinkToSheet(url, group, tags) {
+        try {
+            const result = await fetchFromGoogleSheets({
+                action: 'addLink',
+                url: url,
+                group: group,
+                tags: tags
+            });
+            
+            return result.success;
+        } catch (error) {
+            return false;
+        }
+    }
+
+    async function updateLinkInSheet(oldUrl, newUrl, group, tags) {
+        try {
+            const result = await fetchFromGoogleSheets({
+                action: 'updateLink',
+                oldUrl: oldUrl,
+                newUrl: newUrl,
+                group: group,
+                tags: tags
+            });
+            
+            return result.success;
+        } catch (error) {
+            return false;
+        }
+    }
+
+    async function deleteLinkFromSheet(url) {
+        try {
+            const result = await fetchFromGoogleSheets({
+                action: 'deleteLink',
+                url: url
+            });
+            
+            return result.success;
+        } catch (error) {
+            return false;
+        }
+    }
+
+    // --- Refresh Logic ---
+    async function refreshData() {
+        const icon = document.getElementById('refreshIcon');
+        icon.classList.add('animate-spin');
+        showLoader();
+        
+        await fetchLinks();
+        
+        icon.classList.remove('animate-spin');
+        hideLoader();
+        showToast('Dashboard updated', 'success');
+    }
+
+    // --- Core Render Function (updated) ---
+    async function render() {
+        container.innerHTML = '';
+        const q = document.getElementById('searchInput').value.toLowerCase();
+        
+        const clearBtn = document.getElementById('clearSearch');
+        if (q.length > 0) clearBtn.classList.remove('hidden');
+        else clearBtn.classList.add('hidden');
+
+        const filtered = links.filter(l => {
+            const matchSearch = l.url.toLowerCase().includes(q) || 
+                               l.tags.some(t => t.toLowerCase().includes(q));
+            const matchGroup = currentFilter === '' || l.group === currentFilter;
+            return matchSearch && matchGroup;
         });
 
-        const dropdownWrapper = document.getElementById('dropdownWrapper');
-        const dropdownMenu = document.getElementById('dropdownMenu');
-        const chevron = document.getElementById('chevron');
+        if (filtered.length === 0) {
+            emptyState.classList.remove('hidden');
+            emptyState.classList.add('flex');
+            return;
+        } else {
+            emptyState.classList.add('hidden');
+            emptyState.classList.remove('flex');
+        }
 
-        function toggleDropdown() {
-            const isHidden = dropdownMenu.classList.contains('hidden');
-            if (isHidden) {
-                dropdownMenu.classList.remove('hidden');
-                requestAnimationFrame(() => {
-                    dropdownMenu.classList.remove('dropdown-hidden');
-                    dropdownMenu.classList.add('dropdown-visible');
-                    chevron.style.transform = 'rotate(180deg)';
-                });
-            } else {
-                dropdownMenu.classList.remove('dropdown-visible');
-                dropdownMenu.classList.add('dropdown-hidden');
-                chevron.style.transform = 'rotate(0deg)';
+        const groups = {};
+        filtered.forEach(l => { 
+            if(!groups[l.group]) groups[l.group] = []; 
+            groups[l.group].push(l); 
+        });
+
+        for (const groupName in groups) {
+            const section = document.createElement('div');
+            section.className = 'mb-12 animate-slide-up';
+
+            const header = document.createElement('div');
+            header.className = 'flex items-center gap-3 mb-6 pl-1';
+            header.innerHTML = `
+                <span class="w-2 h-2 rounded-full bg-violet-500 shadow-[0_0_10px_rgba(139,92,246,0.6)]"></span>
+                <h2 class="text-xs font-bold uppercase tracking-widest text-violet-600 dark:text-violet-400">${groupName}</h2>
+            `;
+            section.appendChild(header);
+
+            const grid = document.createElement('div');
+            grid.className = 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6';
+
+            for (const link of groups[groupName]) {
+                const card = document.createElement('div');
+                card.className = 'glass-card rounded-3xl p-6 relative group h-full opacity-0';
+                card.style.animation = `slideUp 0.5s ease-out forwards ${Math.random() * 0.2}s`;
+
+                // Skeleton loader
+                card.innerHTML = `
+                    <div class="w-full h-48 rounded-2xl skeleton mb-6"></div>
+                    <div class="flex items-center gap-3 mb-4">
+                         <div class="w-12 h-12 rounded-full skeleton"></div>
+                         <div class="w-1/2 h-6 rounded-lg skeleton"></div>
+                    </div>
+                    <div class="w-full h-3 rounded-lg skeleton mb-2"></div>
+                    <div class="w-2/3 h-3 rounded-lg skeleton"></div>
+                `;
+                grid.appendChild(card);
+
+                // Fetch metadata and update card
+                const meta = await fetchMeta(link.url);
+                const domain = new URL(link.url).hostname.replace('www.', '');
+                const title = meta.title || domain;
+                const logoUrl = `https://www.google.com/s2/favicons?domain=${domain}&sz=64`;
+                const tagsHtml = link.tags.map(t => `<span class="px-2 py-1 bg-violet-50/80 dark:bg-violet-900/20 border border-violet-100 dark:border-violet-800/30 text-xs font-medium text-violet-600 dark:text-violet-300 rounded-md">#${t}</span>`).join('');
+
+                card.innerHTML = `
+                    <div class="relative mb-6 overflow-hidden rounded-2xl aspect-video bg-stone-100 dark:bg-slate-800/50 border border-white/20 dark:border-white/5 group-hover:border-violet-200/50 transition-colors">
+                        ${meta.image?.url 
+                            ? `<img src="${meta.image.url}" alt="${title}" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" onerror="this.style.display='none';">`
+                            : `<div class="w-full h-full flex items-center justify-center bg-gradient-to-br from-violet-50 to-white dark:from-slate-800 dark:to-slate-900"><i class="fa-solid fa-globe text-3xl text-violet-200 dark:text-slate-600"></i></div>`
+                        }
+                        <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                        <div class="card-actions absolute top-4 right-4 flex gap-2">
+                            <button onclick="editLink('${link.url}')" class="w-10 h-10 rounded-full bg-white/20 dark:bg-black/80 backdrop-blur-md text-blue-500 shadow-lg border border-white/20 dark:border-white/10 flex items-center justify-center hover:bg-blue-500 hover:text-white transition-all" title="Edit">
+                                <i class="fa-solid fa-pen text-sm"></i>
+                            </button>
+                            <button onclick="promptDelete('${link.url}')" class="w-10 h-10 rounded-full bg-white/20 dark:bg-black/80 backdrop-blur-md text-red-500 shadow-lg border border-white/20 dark:border-white/10 flex items-center justify-center hover:bg-red-500 hover:text-white transition-all" title="Delete">
+                                <i class="fa-solid fa-trash text-sm"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="flex-1">
+                        <div class="flex items-start gap-3 mb-3">
+                            <div class="w-12 h-12 rounded-full bg-white dark:bg-slate-800 shadow-sm flex items-center justify-center border border-stone-100 dark:border-slate-700 overflow-hidden shrink-0 mt-1">
+                                <img src="${logoUrl}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex'" class="w-6 h-6 object-contain">
+                                <i class="fa-solid fa-globe text-stone-300 dark:text-slate-600 hidden absolute text-xs"></i>
+                            </div>
+                            <h3 class="text-lg font-bold text-stone-900 dark:text-white leading-snug tracking-tight" title="${title}">${title}</h3>
+                        </div>
+                        <p class="text-stone-500 dark:text-slate-400 text-sm line-clamp-2 leading-relaxed mb-6 h-10">${meta.description || 'No description available.'}</p>
+                    </div>
+
+                    <div class="mt-auto pt-5 border-t border-stone-100/50 dark:border-slate-700/50 flex items-center justify-between">
+                        <div class="flex gap-2 flex-wrap">${tagsHtml}</div>
+                        <div class="flex gap-2">
+                            <button onclick="copyToClipboard('${link.url}', this)" class="w-10 h-10 rounded-xl bg-stone-100 dark:bg-slate-700 text-stone-500 dark:text-slate-400 hover:bg-violet-100 hover:text-violet-600 dark:hover:bg-violet-900/30 dark:hover:text-violet-300 transition-colors flex items-center justify-center" title="Copy">
+                                <i class="fa-regular fa-copy text-sm"></i>
+                            </button>
+                            <a href="${link.url}" target="_blank" class="w-10 h-10 rounded-xl bg-violet-100 dark:bg-violet-600 text-violet-600 dark:text-white hover:scale-110 hover:shadow-lg hover:shadow-violet-500/30 transition-all duration-300 flex items-center justify-center" title="Visit">
+                                <i class="fa-solid fa-arrow-up-right-from-square text-sm"></i>
+                            </a>
+                        </div>
+                    </div>
+                `;
+            }
+            section.appendChild(grid);
+            container.appendChild(section);
+        }
+    }
+
+    async function fetchMeta(url) {
+        try {
+            const r = await fetch(`https://api.microlink.io/?url=${encodeURIComponent(url)}`);
+            const { data } = await r.json();
+            return data;
+        } catch { 
+            return {}; 
+        }
+    }
+
+    // --- Login Modal Functions ---
+    const loginModal = document.getElementById('loginModal');
+    const loginBackdrop = document.getElementById('loginModalBackdrop');
+    const loginContent = document.getElementById('loginModalContent');
+
+    function openLoginModal() {
+        loginModal.classList.remove('hidden');
+        setTimeout(() => {
+            loginBackdrop.classList.remove('opacity-0');
+            loginContent.classList.remove('scale-95', 'opacity-0');
+            loginContent.classList.add('scale-100', 'opacity-100');
+        }, 10);
+        document.getElementById('loginId').focus();
+    }
+
+    function closeLoginModal() {
+        loginBackdrop.classList.add('opacity-0');
+        loginContent.classList.remove('scale-100', 'opacity-100');
+        loginContent.classList.add('scale-95', 'opacity-0');
+        setTimeout(() => {
+            loginModal.classList.add('hidden');
+            document.getElementById('loginForm').reset();
+        }, 300);
+    }
+
+    document.getElementById('loginForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const idInput = document.getElementById('loginId').value;
+        const passInput = document.getElementById('loginPass').value;
+
+        if (await verifyLogin(idInput, passInput)) {
+            closeLoginModal();
+            enableEditMode();
+        } else {
+            showToast('Invalid ID or Password', 'error');
+            const content = document.getElementById('loginModalContent');
+            content.classList.add('translate-x-[-10px]');
+            setTimeout(() => {
+                content.classList.remove('translate-x-[-10px]');
+                content.classList.add('translate-x-[10px]');
                 setTimeout(() => {
+                    content.classList.remove('translate-x-[10px]');
+                }, 100);
+            }, 100);
+        }
+    });
+
+    // --- Add Link Form (updated) ---
+    document.getElementById('addForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const url = document.getElementById('urlInput').value;
+        const group = document.getElementById('groupInput').value;
+        const tags = document.getElementById('tagsInput').value.split(',').map(t => t.trim()).filter(Boolean).join(',');
+        
+        if (await addLinkToSheet(url, group, tags)) {
+            links.unshift({ url, group, tags: tags.split(',') });
+            closeModal();
+            await render();
+            showToast('Link added', 'success');
+        } else {
+            showToast('Failed to add link', 'error');
+        }
+    });
+
+    // --- Edit Link Form (updated) ---
+    let currentEditIndex = -1;
+
+    function editLink(url) {
+        const linkIndex = links.findIndex(l => l.url === url);
+        if(linkIndex !== -1) {
+            currentEditIndex = linkIndex;
+            const link = links[linkIndex];
+            document.getElementById('editUrlInput').value = link.url;
+            document.getElementById('editGroupInput').value = link.group;
+            document.getElementById('editTagsInput').value = link.tags.join(', ');
+            openEditModal();
+        }
+    }
+
+    document.getElementById('editForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        if (currentEditIndex !== -1) {
+            const oldUrl = links[currentEditIndex].url;
+            const newUrl = document.getElementById('editUrlInput').value;
+            const group = document.getElementById('editGroupInput').value;
+            const tags = document.getElementById('editTagsInput').value.split(',').map(t => t.trim()).filter(Boolean).join(',');
+            
+            if (await updateLinkInSheet(oldUrl, newUrl, group, tags)) {
+                links[currentEditIndex] = { url: newUrl, group, tags: tags.split(',') };
+                closeEditModal();
+                await render();
+                showToast('Link updated', 'success');
+            } else {
+                showToast('Failed to update link', 'error');
+            }
+        }
+    });
+
+    // --- Delete Functions (updated) ---
+    async function confirmDelete() {
+        if (urlToDelete) {
+            if (await deleteLinkFromSheet(urlToDelete)) {
+                links = links.filter(l => l.url !== urlToDelete);
+                closeDeleteModal();
+                await render();
+                showToast('Link deleted', 'error');
+            } else {
+                showToast('Failed to delete link', 'error');
+            }
+        }
+    }
+
+    // --- Other Functions (keep as is) ---
+    document.getElementById('clearSearch').addEventListener('click', () => {
+        document.getElementById('searchInput').value = '';
+        document.getElementById('searchInput').focus();
+        render();
+    });
+
+    const dropdownWrapper = document.getElementById('dropdownWrapper');
+    const dropdownMenu = document.getElementById('dropdownMenu');
+    const chevron = document.getElementById('chevron');
+
+    function toggleDropdown() {
+        const isHidden = dropdownMenu.classList.contains('hidden');
+        if (isHidden) {
+            dropdownMenu.classList.remove('hidden');
+            requestAnimationFrame(() => {
+                dropdownMenu.classList.remove('dropdown-hidden');
+                dropdownMenu.classList.add('dropdown-visible');
+                chevron.style.transform = 'rotate(180deg)';
+            });
+        } else {
+            dropdownMenu.classList.remove('dropdown-visible');
+            dropdownMenu.classList.add('dropdown-hidden');
+            chevron.style.transform = 'rotate(0deg)';
+            setTimeout(() => {
+                if (dropdownMenu.classList.contains('dropdown-hidden')) {
+                    dropdownMenu.classList.add('hidden');
+                }
+            }, 200);
+        }
+    }
+
+    function setFilter(val) {
+        currentFilter = val;
+        document.getElementById('currentFilter').textContent = val === '' ? 'All' : val;
+        toggleDropdown(); 
+        render();
+    }
+
+    function resetFilters() {
+        document.getElementById('searchInput').value = '';
+        setFilter('');
+    }
+
+    window.addEventListener('click', (e) => {
+        if (!dropdownWrapper.contains(e.target)) {
+            if (!dropdownMenu.classList.contains('hidden')) {
+                 dropdownMenu.classList.remove('dropdown-visible');
+                 dropdownMenu.classList.add('dropdown-hidden');
+                 chevron.style.transform = 'rotate(0deg)';
+                 setTimeout(() => {
                     if (dropdownMenu.classList.contains('dropdown-hidden')) {
                         dropdownMenu.classList.add('hidden');
                     }
                 }, 200);
             }
         }
+    });
 
-        function setFilter(val) {
-            currentFilter = val;
-            document.getElementById('currentFilter').textContent = val === '' ? 'All' : val;
-            toggleDropdown(); 
-            render();
-        }
+    document.getElementById('searchInput').addEventListener('input', render);
 
-        function resetFilters() {
-            document.getElementById('searchInput').value = '';
-            setFilter('');
-        }
-
-        window.addEventListener('click', (e) => {
-            if (!dropdownWrapper.contains(e.target)) {
-                if (!dropdownMenu.classList.contains('hidden')) {
-                     dropdownMenu.classList.remove('dropdown-visible');
-                     dropdownMenu.classList.add('dropdown-hidden');
-                     chevron.style.transform = 'rotate(0deg)';
-                     setTimeout(() => {
-                        if (dropdownMenu.classList.contains('dropdown-hidden')) {
-                            dropdownMenu.classList.add('hidden');
-                        }
-                    }, 200);
-                }
-            }
+    // Copy function
+    function copyToClipboard(text, btnElement) {
+        navigator.clipboard.writeText(text).then(() => {
+            const icon = btnElement.querySelector('i');
+            icon.className = 'fa-solid fa-check text-sm text-emerald-500';
+            setTimeout(() => {
+                icon.className = 'fa-regular fa-copy text-sm';
+            }, 1500);
+            showToast('Copied to clipboard', 'success');
         });
+    }
 
-        document.getElementById('searchInput').addEventListener('input', render);
-
-        // Modal
-        const modal = document.getElementById('modal');
-        const backdrop = document.getElementById('modalBackdrop');
-        const content = document.getElementById('modalContent');
-
-        function openModal() {
-            modal.classList.remove('hidden');
-            setTimeout(() => {
-                backdrop.classList.remove('opacity-0');
-                content.classList.remove('scale-95', 'opacity-0');
-                content.classList.add('scale-100', 'opacity-100');
-            }, 10);
-            document.getElementById('urlInput').focus();
+    // Toast function
+    function showToast(message, type = 'info') {
+        const toastContainer = document.getElementById('toastContainer');
+        const toast = document.createElement('div');
+        
+        let colors = '';
+        let icon = '';
+        
+        if (type === 'success') {
+            colors = 'bg-white/90 dark:bg-slate-800/90 border-l-4 border-emerald-500 text-stone-800 dark:text-white';
+            icon = '<i class="fa-solid fa-check-circle text-emerald-500"></i>';
+        } else if (type === 'error') {
+            colors = 'bg-white/90 dark:bg-slate-800/90 border-l-4 border-red-500 text-stone-800 dark:text-white';
+            icon = '<i class="fa-solid fa-circle-exclamation text-red-500"></i>';
+        } else {
+            colors = 'bg-white/90 dark:bg-slate-800/90 border-l-4 border-violet-500 text-stone-800 dark:text-white';
+            icon = '<i class="fa-solid fa-circle-info text-violet-500"></i>';
         }
 
-        function closeModal() {
-            backdrop.classList.add('opacity-0');
-            content.classList.remove('scale-100', 'opacity-100');
-            content.classList.add('scale-95', 'opacity-0');
-            setTimeout(() => modal.classList.add('hidden'), 300);
-            document.getElementById('addForm').reset();
+        toast.className = `pointer-events-auto flex items-center gap-3 px-5 py-3 rounded-lg shadow-xl backdrop-blur-md transform transition-all duration-300 ${colors}`;
+        toast.style.animation = 'slideInRight 0.3s ease-out forwards';
+        
+        toast.innerHTML = `
+            ${icon}
+            <span class="text-xs font-medium">${message}</span>
+        `;
+
+        toastContainer.appendChild(toast);
+
+        setTimeout(() => {
+            toast.style.opacity = '0';
+            toast.style.transform = 'translateY(10px)';
+            setTimeout(() => toast.remove(), 300);
+        }, 3000);
+    }
+
+    // Theme toggle
+    function toggleTheme() {
+        document.documentElement.classList.toggle('dark');
+        localStorage.theme = document.documentElement.classList.contains('dark') ? 'dark' : 'light';
+    }
+
+    // Initialize
+    window.addEventListener('load', async () => {
+        if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            document.documentElement.classList.add('dark');
         }
-
-        document.getElementById('addForm').addEventListener('submit', (e) => {
-            e.preventDefault();
-            const url = document.getElementById('urlInput').value;
-            const group = document.getElementById('groupInput').value;
-            const tags = document.getElementById('tagsInput').value.split(',').map(t => t.trim()).filter(Boolean);
-            links.unshift({ url, group, tags });
-            localStorage.setItem('links', JSON.stringify(links));
-            closeModal();
-            render();
-            showToast('Link added', 'success');
-        });
-
-        let currentEditIndex = -1;
-
-        function editLink(url) {
-            const linkIndex = links.findIndex(l => l.url === url);
-            if(linkIndex !== -1) {
-                currentEditIndex = linkIndex;
-                const link = links[linkIndex];
-                document.getElementById('editUrlInput').value = link.url;
-                document.getElementById('editGroupInput').value = link.group;
-                document.getElementById('editTagsInput').value = link.tags.join(', ');
-                openEditModal();
-            }
-        }
-
-        const editModal = document.getElementById('editModal');
-        const editBackdrop = document.getElementById('editModalBackdrop');
-        const editContent = document.getElementById('editModalContent');
-
-        function openEditModal() {
-            editModal.classList.remove('hidden');
-            setTimeout(() => {
-                editBackdrop.classList.remove('opacity-0');
-                editContent.classList.remove('scale-95', 'opacity-0');
-                editContent.classList.add('scale-100', 'opacity-100');
-            }, 10);
-            document.getElementById('editUrlInput').focus();
-        }
-
-        function closeEditModal() {
-            editBackdrop.classList.add('opacity-0');
-            editContent.classList.remove('scale-100', 'opacity-100');
-            editContent.classList.add('scale-95', 'opacity-0');
-            setTimeout(() => {
-                editModal.classList.add('hidden');
-                document.getElementById('editForm').reset();
-                currentEditIndex = -1;
-            }, 300);
-        }
-
-        document.getElementById('editForm').addEventListener('submit', (e) => {
-            e.preventDefault();
-            if (currentEditIndex !== -1) {
-                const url = document.getElementById('editUrlInput').value;
-                const group = document.getElementById('editGroupInput').value;
-                const tags = document.getElementById('editTagsInput').value.split(',').map(t => t.trim()).filter(Boolean);
-                links[currentEditIndex] = { url, group, tags };
-                localStorage.setItem('links', JSON.stringify(links));
-                closeEditModal();
-                render();
-                showToast('Link updated', 'success');
-            }
-        });
-
-        // --- Delete Logic ---
-        const deleteModal = document.getElementById('deleteModal');
-        const deleteBackdrop = document.getElementById('deleteModalBackdrop');
-        const deleteContent = document.getElementById('deleteModalContent');
-
-        function promptDelete(url) {
-            urlToDelete = url;
-            deleteModal.classList.remove('hidden');
-            setTimeout(() => {
-                deleteBackdrop.classList.remove('opacity-0');
-                deleteContent.classList.remove('scale-95', 'opacity-0');
-                deleteContent.classList.add('scale-100', 'opacity-100');
-            }, 10);
-        }
-
-        function closeDeleteModal() {
-            deleteBackdrop.classList.add('opacity-0');
-            deleteContent.classList.remove('scale-100', 'opacity-100');
-            deleteContent.classList.add('scale-95', 'opacity-0');
-            setTimeout(() => {
-                deleteModal.classList.add('hidden');
-                urlToDelete = null;
-            }, 300);
-        }
-
-        function confirmDelete() {
-            if (urlToDelete) {
-                links = links.filter(l => l.url !== urlToDelete);
-                localStorage.setItem('links', JSON.stringify(links));
-                closeDeleteModal();
-                render();
-                showToast('Link deleted', 'error');
-            }
-        }
-
-        function copyToClipboard(text, btnElement) {
-            navigator.clipboard.writeText(text).then(() => {
-                const icon = btnElement.querySelector('i');
-                icon.className = 'fa-solid fa-check text-sm text-emerald-500';
-                setTimeout(() => {
-                    icon.className = 'fa-regular fa-copy text-sm';
-                }, 1500);
-                showToast('Copied to clipboard', 'success');
-            });
-        }
-
-        // --- UX: Toast Notification System ---
-        function showToast(message, type = 'info') {
-            const toastContainer = document.getElementById('toastContainer');
-            const toast = document.createElement('div');
-            
-            let colors = '';
-            let icon = '';
-            
-            if (type === 'success') {
-                colors = 'bg-white/90 dark:bg-slate-800/90 border-l-4 border-emerald-500 text-stone-800 dark:text-white';
-                icon = '<i class="fa-solid fa-check-circle text-emerald-500"></i>';
-            } else if (type === 'error') {
-                colors = 'bg-white/90 dark:bg-slate-800/90 border-l-4 border-red-500 text-stone-800 dark:text-white';
-                icon = '<i class="fa-solid fa-circle-exclamation text-red-500"></i>';
-            } else {
-                colors = 'bg-white/90 dark:bg-slate-800/90 border-l-4 border-violet-500 text-stone-800 dark:text-white';
-                icon = '<i class="fa-solid fa-circle-info text-violet-500"></i>';
-            }
-
-            toast.className = `pointer-events-auto flex items-center gap-3 px-5 py-3 rounded-lg shadow-xl backdrop-blur-md transform transition-all duration-300 ${colors}`;
-            toast.style.animation = 'slideInRight 0.3s ease-out forwards';
-            
-            toast.innerHTML = `
-                ${icon}
-                <span class="text-xs font-medium">${message}</span>
-            `;
-
-            toastContainer.appendChild(toast);
-
-            setTimeout(() => {
-                toast.style.opacity = '0';
-                toast.style.transform = 'translateY(10px)';
-                setTimeout(() => toast.remove(), 300);
-            }, 3000);
-        }
-
-        // Theme
-        function toggleTheme() {
-            document.documentElement.classList.toggle('dark');
-            localStorage.theme = document.documentElement.classList.contains('dark') ? 'dark' : 'light';
-        }
-
-        // Init
-        window.addEventListener('load', () => {
-            if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-                document.documentElement.classList.add('dark');
-            }
-            showLoader();
-            setTimeout(() => {
-                render();
-                hideLoader();
-            }, 600);
-        });
-
-    </script>
+        
+        showLoader();
+        await fetchLinks();
+        hideLoader();
+    });
+</script>
 </body>
 </html>
