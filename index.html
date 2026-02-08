@@ -511,7 +511,7 @@
     const emptyState = document.getElementById('emptyState');
     const loadingPopup = document.getElementById('loadingPopup');
     
-    // Cache for metadata to avoid repeated API calls
+    // Cache for metadata
     const metaCache = new Map();
 
     // --- Loader Functions ---
@@ -554,20 +554,14 @@
         }
     }
 
-    // --- Google Sheets API Functions (UPDATED) ---
+    // --- Google Sheets API Functions ---
     async function fetchFromGoogleSheets(params) {
         try {
-            // Build URL with parameters - USE HTTP GET METHOD
-            const url = `${GOOGLE_SCRIPT_URL}?${new URLSearchParams(params).toString()}&_t=${Date.now()}`;
-            
-            console.log('Fetching from:', url);
-            
             // Use JSONP as primary method (works better with GitHub Pages)
             return await fetchViaJSONP(params);
             
         } catch (error) {
             console.error('Google Sheets API Error:', error);
-            console.log('Using local fallback data...');
             return await getLocalFallbackData(params.action);
         }
     }
@@ -615,7 +609,6 @@
 
     // Local fallback data
     async function getLocalFallbackData(action) {
-        // First check localStorage
         const localData = JSON.parse(localStorage.getItem('essentialLinks_data'));
         
         if (action === 'getLinks') {
@@ -623,23 +616,14 @@
                 showToast('Using cached data', 'info');
                 return { success: true, links: localData.links };
             }
-            // Default links if nothing in localStorage
             return {
                 success: true,
-                links: [
-                    { url: 'https://uiverse.io/', group: 'Design', tags: ['ui', 'css'] },
-                    { url: 'https://www.flaticon.com/', group: 'Design', tags: ['icons', 'svg'] },
-                    { url: 'https://github.com/', group: 'Dev', tags: ['code', 'git'] },
-                    { url: 'https://tailwindcss.com/', group: 'Dev', tags: ['css', 'framework'] },
-                    { url: 'https://dribbble.com/', group: 'Inspiration', tags: ['design', 'art'] },
-                    { url: 'https://figma.com/', group: 'Tools', tags: ['design', 'tool'] }
-                ]
+                links: []
             };
         }
         
         if (action === 'verifyLogin') {
-            // For login, always fail in offline mode
-            return { success: true, authenticated: false, message: 'Offline mode - login disabled' };
+            return { success: true, authenticated: false };
         }
         
         return { success: false, error: 'Action not supported offline' };
@@ -662,7 +646,6 @@
                 showToast(`Loaded ${links.length} links`, 'success');
             } else {
                 showToast('Failed to load links from server', 'warning');
-                // Try local fallback
                 const localResult = await getLocalFallbackData('getLinks');
                 if (localResult.success) {
                     links = localResult.links;
@@ -758,7 +741,7 @@
         icon.classList.remove('animate-spin');
     }
 
-    // --- Core Render Function (OPTIMIZED) ---
+    // --- Core Render Function ---
     async function render() {
         container.innerHTML = '';
         const q = document.getElementById('searchInput').value.toLowerCase();
@@ -815,13 +798,10 @@
             const grid = document.createElement('div');
             grid.className = 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6';
 
-            // Create cards for each link (without metadata initially)
+            // Create cards for each link
             for (const link of groups[groupName]) {
-                const card = createLinkCardSkeleton(link);
+                const card = await createLinkCard(link);
                 grid.appendChild(card);
-                
-                // Load metadata asynchronously
-                setTimeout(() => loadCardMetadata(card, link), 100);
             }
             
             section.appendChild(grid);
@@ -829,22 +809,43 @@
         }
     }
 
-    // Create skeleton card (no metadata fetch)
-    function createLinkCardSkeleton(link) {
+    // Create link card with metadata
+    async function createLinkCard(link) {
         const card = document.createElement('div');
         card.className = 'glass-card rounded-3xl p-6 relative group h-full opacity-0';
         card.style.animation = `slideUp 0.5s ease-out forwards`;
-        card.dataset.url = link.url;
         
+        // Get metadata first
+        const meta = await fetchMetaWithFallback(link.url);
         const domain = extractDomain(link.url);
+        const title = meta.title || domain;
+        const logoUrl = `https://www.google.com/s2/favicons?domain=${domain}&sz=64`;
         const safeUrl = link.url.replace(/'/g, "\\'");
         const tagsHtml = (link.tags || []).map(t => 
             `<span class="px-2 py-1 bg-violet-50/80 dark:bg-violet-900/20 border border-violet-100 dark:border-violet-800/30 text-xs font-medium text-violet-600 dark:text-violet-300 rounded-md">#${t}</span>`
         ).join('');
         
+        // Determine image to show
+        let imageHtml = '';
+        if (meta.image && meta.image.url) {
+            imageHtml = `
+                <img src="${meta.image.url}" alt="${title}" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" 
+                     onerror="this.style.display='none'; this.nextElementSibling.style.display='flex'">
+                <div class="w-full h-full flex items-center justify-center bg-gradient-to-br from-violet-50 to-white dark:from-slate-800 dark:to-slate-900 hidden">
+                    <i class="fa-solid fa-globe text-3xl text-violet-200 dark:text-slate-600"></i>
+                </div>
+            `;
+        } else {
+            imageHtml = `
+                <div class="w-full h-full flex items-center justify-center bg-gradient-to-br from-violet-50 to-white dark:from-slate-800 dark:to-slate-900">
+                    <i class="fa-solid fa-globe text-3xl text-violet-200 dark:text-slate-600"></i>
+                </div>
+            `;
+        }
+        
         card.innerHTML = `
-            <div class="relative mb-6 overflow-hidden rounded-2xl aspect-video bg-gradient-to-br from-violet-50 to-white dark:from-slate-800 dark:to-slate-900 border border-white/20 dark:border-white/5 group-hover:border-violet-200/50 transition-colors flex items-center justify-center">
-                <i class="fa-solid fa-globe text-3xl text-violet-200 dark:text-slate-600"></i>
+            <div class="relative mb-6 overflow-hidden rounded-2xl aspect-video bg-stone-100 dark:bg-slate-800/50 border border-white/20 dark:border-white/5 group-hover:border-violet-200/50 transition-colors">
+                ${imageHtml}
                 <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                 <div class="card-actions absolute top-4 right-4 flex gap-2">
                     <button onclick="editLink('${safeUrl}')" class="w-10 h-10 rounded-full bg-white/20 dark:bg-black/80 backdrop-blur-md text-blue-500 shadow-lg border border-white/20 dark:border-white/10 flex items-center justify-center hover:bg-blue-500 hover:text-white transition-all" title="Edit">
@@ -859,16 +860,19 @@
             <div class="flex-1">
                 <div class="flex items-start gap-3 mb-3">
                     <div class="w-12 h-12 rounded-full bg-white dark:bg-slate-800 shadow-sm flex items-center justify-center border border-stone-100 dark:border-slate-700 overflow-hidden shrink-0 mt-1">
-                        <div class="w-6 h-6 rounded-full bg-violet-100 dark:bg-violet-900/30 flex items-center justify-center">
+                        <img src="${logoUrl}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex'" class="w-6 h-6 object-contain">
+                        <div class="w-6 h-6 rounded-full bg-violet-100 dark:bg-violet-900/30 flex items-center justify-center hidden">
                             <i class="fa-solid fa-link text-violet-400 dark:text-violet-500 text-xs"></i>
                         </div>
                     </div>
                     <div class="flex-1 min-w-0">
-                        <h3 class="text-lg font-bold text-stone-900 dark:text-white leading-snug tracking-tight truncate" title="${domain}">${domain}</h3>
-                        <p class="text-stone-500 dark:text-slate-400 text-xs mt-1 truncate">${link.url}</p>
+                        <h3 class="text-lg font-bold text-stone-900 dark:text-white leading-snug tracking-tight truncate" title="${title}">${title}</h3>
+                        <p class="text-stone-500 dark:text-slate-400 text-xs mt-1 truncate" title="${link.url}">${extractDomain(link.url)}</p>
                     </div>
                 </div>
-                <p class="text-stone-500 dark:text-slate-400 text-sm line-clamp-2 leading-relaxed mb-6 h-10 italic">Loading description...</p>
+                <p class="text-stone-500 dark:text-slate-400 text-sm line-clamp-2 leading-relaxed mb-6 h-10" title="${meta.description || 'No description available.'}">
+                    ${meta.description || 'No description available.'}
+                </p>
             </div>
 
             <div class="mt-auto pt-5 border-t border-stone-100/50 dark:border-slate-700/50 flex items-center justify-between">
@@ -887,56 +891,6 @@
         return card;
     }
 
-    // Load metadata for a card asynchronously
-    async function loadCardMetadata(card, link) {
-        try {
-            const meta = await fetchMetaWithCache(link.url);
-            const domain = extractDomain(link.url);
-            const title = meta.title || domain;
-            const logoUrl = `https://www.google.com/s2/favicons?domain=${domain}&sz=64`;
-            
-            // Update card content
-            const imgContainer = card.querySelector('div[class*="aspect-video"]');
-            const titleEl = card.querySelector('h3');
-            const descEl = card.querySelector('p[class*="line-clamp-2"]');
-            const logoContainer = card.querySelector('div[class*="rounded-full"]:first-child');
-            
-            if (meta.image?.url) {
-                imgContainer.innerHTML = `
-                    <img src="${meta.image.url}" alt="${title}" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex'">
-                    <div class="w-full h-full flex items-center justify-center bg-gradient-to-br from-violet-50 to-white dark:from-slate-800 dark:to-slate-900 hidden">
-                        <i class="fa-solid fa-globe text-3xl text-violet-200 dark:text-slate-600"></i>
-                    </div>
-                    <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                    ${imgContainer.querySelector('.card-actions').outerHTML}
-                `;
-            }
-            
-            if (titleEl) {
-                titleEl.textContent = title;
-                titleEl.title = title;
-            }
-            
-            if (descEl) {
-                descEl.textContent = meta.description || 'No description available.';
-                descEl.classList.remove('italic');
-            }
-            
-            if (logoContainer) {
-                logoContainer.innerHTML = `
-                    <img src="${logoUrl}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex'" class="w-6 h-6 object-contain">
-                    <div class="w-6 h-6 rounded-full bg-violet-100 dark:bg-violet-900/30 flex items-center justify-center hidden">
-                        <i class="fa-solid fa-link text-violet-400 dark:text-violet-500 text-xs"></i>
-                    </div>
-                `;
-            }
-            
-        } catch (error) {
-            console.log('Metadata load failed for:', link.url, error);
-            // Keep the skeleton UI
-        }
-    }
-
     // Helper functions
     function extractDomain(url) {
         try {
@@ -952,48 +906,79 @@
         }
     }
 
-    // Cached metadata fetch with rate limiting protection
-    async function fetchMetaWithCache(url) {
+    // Metadata fetching with multiple fallbacks
+    async function fetchMetaWithFallback(url) {
         // Check cache first
         if (metaCache.has(url)) {
             return metaCache.get(url);
         }
         
-        // Return empty object to avoid API calls (due to rate limiting)
-        const emptyMeta = {
-            title: extractDomain(url),
+        const domain = extractDomain(url);
+        const defaultMeta = {
+            title: domain,
             description: 'Website description not available.',
             image: null
         };
         
-        metaCache.set(url, emptyMeta);
-        return emptyMeta;
-        
-        /* If you want to enable metadata fetching later:
+        // Try microlink.io first
         try {
-            // Add delay to avoid rate limiting
-            await new Promise(resolve => setTimeout(resolve, Math.random() * 1000));
+            const response = await fetch(`https://api.microlink.io/?url=${encodeURIComponent(url)}&timeout=3000`);
             
-            const response = await fetch(`https://api.microlink.io/?url=${encodeURIComponent(url)}&timeout=5000`);
-            
-            if (response.status === 429) {
-                console.log('Rate limited for:', url);
-                return emptyMeta;
+            if (response.ok) {
+                const { data } = await response.json();
+                if (data) {
+                    const meta = {
+                        title: data.title || domain,
+                        description: data.description || 'No description available.',
+                        image: data.image
+                    };
+                    metaCache.set(url, meta);
+                    return meta;
+                }
             }
-            
-            const { data } = await response.json();
-            const meta = data || emptyMeta;
-            
-            // Cache the result
-            metaCache.set(url, meta);
-            return meta;
-            
         } catch (error) {
-            console.log('Metadata fetch failed for:', url, error);
-            metaCache.set(url, emptyMeta);
-            return emptyMeta;
+            console.log('Microlink.io failed for:', url, error);
         }
-        */
+        
+        // Fallback: Try OpenGraph meta tags via CORS proxy
+        try {
+            const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
+            const response = await fetch(proxyUrl, { 
+                headers: { 'Accept': 'text/html' },
+                timeout: 3000 
+            });
+            
+            if (response.ok) {
+                const html = await response.text();
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(html, 'text/html');
+                
+                const title = doc.querySelector('title')?.textContent || 
+                             doc.querySelector('meta[property="og:title"]')?.getAttribute('content') || 
+                             domain;
+                
+                const description = doc.querySelector('meta[name="description"]')?.getAttribute('content') ||
+                                  doc.querySelector('meta[property="og:description"]')?.getAttribute('content') ||
+                                  'No description available.';
+                
+                const image = doc.querySelector('meta[property="og:image"]')?.getAttribute('content');
+                
+                const meta = {
+                    title: title,
+                    description: description,
+                    image: image ? { url: image } : null
+                };
+                
+                metaCache.set(url, meta);
+                return meta;
+            }
+        } catch (error) {
+            console.log('OpenGraph fetch failed for:', url, error);
+        }
+        
+        // Ultimate fallback
+        metaCache.set(url, defaultMeta);
+        return defaultMeta;
     }
 
     // --- Login Modal Functions ---
