@@ -510,6 +510,9 @@
     const container = document.getElementById('mainContainer');
     const emptyState = document.getElementById('emptyState');
     const loadingPopup = document.getElementById('loadingPopup');
+    
+    // Cache for metadata to avoid repeated API calls
+    const metaCache = new Map();
 
     // --- Loader Functions ---
     function showLoader() {
@@ -551,51 +554,25 @@
         }
     }
 
-    // --- Google Sheets API Functions ---
+    // --- Google Sheets API Functions (UPDATED) ---
     async function fetchFromGoogleSheets(params) {
         try {
-            // Build URL with parameters
-            const url = new URL(GOOGLE_SCRIPT_URL);
-            Object.keys(params).forEach(key => {
-                url.searchParams.append(key, params[key]);
-            });
+            // Build URL with parameters - USE HTTP GET METHOD
+            const url = `${GOOGLE_SCRIPT_URL}?${new URLSearchParams(params).toString()}&_t=${Date.now()}`;
             
-            // Add cache busting
-            url.searchParams.append('_t', Date.now());
+            console.log('Fetching from:', url);
             
-            console.log('Fetching from:', url.toString());
-            
-            // Try regular fetch
-            const response = await fetch(url.toString());
-            
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            
-            const text = await response.text();
-            
-            try {
-                return JSON.parse(text);
-            } catch (parseError) {
-                console.warn('Failed to parse JSON, trying JSONP...');
-                return await fetchViaJSONP(params);
-            }
+            // Use JSONP as primary method (works better with GitHub Pages)
+            return await fetchViaJSONP(params);
             
         } catch (error) {
             console.error('Google Sheets API Error:', error);
-            console.log('Trying JSONP as fallback...');
-            
-            // Try JSONP as fallback
-            try {
-                return await fetchViaJSONP(params);
-            } catch (jsonpError) {
-                console.error('JSONP also failed:', jsonpError);
-                return await getLocalFallbackData(params.action);
-            }
+            console.log('Using local fallback data...');
+            return await getLocalFallbackData(params.action);
         }
     }
 
-    // JSONP implementation for CORS workaround
+    // JSONP implementation (primary method)
     function fetchViaJSONP(params) {
         return new Promise((resolve, reject) => {
             const callbackName = 'jsonp_callback_' + Math.round(100000 * Math.random());
@@ -603,42 +580,35 @@
             
             // Set timeout
             const timeout = setTimeout(() => {
-                delete window[callbackName];
-                if (script.parentNode) {
-                    script.parentNode.removeChild(script);
-                }
+                cleanup();
                 reject(new Error('JSONP timeout'));
             }, 10000);
             
-            // Define callback
-            window[callbackName] = function(data) {
+            // Cleanup function
+            function cleanup() {
                 clearTimeout(timeout);
                 delete window[callbackName];
                 if (script.parentNode) {
                     script.parentNode.removeChild(script);
                 }
+            }
+            
+            // Define callback
+            window[callbackName] = function(data) {
+                cleanup();
                 resolve(data);
             };
             
             // Handle errors
             script.onerror = function() {
-                clearTimeout(timeout);
-                delete window[callbackName];
-                if (script.parentNode) {
-                    script.parentNode.removeChild(script);
-                }
+                cleanup();
                 reject(new Error('JSONP script failed to load'));
             };
             
             // Build URL with callback parameter
-            const url = new URL(GOOGLE_SCRIPT_URL);
-            Object.keys(params).forEach(key => {
-                url.searchParams.append(key, params[key]);
-            });
-            url.searchParams.append('callback', callbackName);
-            url.searchParams.append('_t', Date.now());
+            const url = `${GOOGLE_SCRIPT_URL}?${new URLSearchParams(params).toString()}&callback=${callbackName}&_t=${Date.now()}`;
             
-            script.src = url.toString();
+            script.src = url;
             document.head.appendChild(script);
         });
     }
@@ -689,8 +659,9 @@
                     timestamp: new Date().toISOString() 
                 }));
                 await render();
+                showToast(`Loaded ${links.length} links`, 'success');
             } else {
-                showToast('Failed to load links: ' + (result.message || result.error), 'error');
+                showToast('Failed to load links from server', 'warning');
                 // Try local fallback
                 const localResult = await getLocalFallbackData('getLinks');
                 if (localResult.success) {
@@ -700,7 +671,7 @@
             }
         } catch (error) {
             console.error('Error fetching links:', error);
-            showToast('Connection error. Using local data.', 'warning');
+            showToast('Connection error. Using cached data.', 'warning');
             const localResult = await getLocalFallbackData('getLinks');
             if (localResult.success) {
                 links = localResult.links;
@@ -720,10 +691,7 @@
                 password: password 
             });
             
-            if (result.success && result.authenticated) {
-                return true;
-            }
-            return false;
+            return result.success && result.authenticated === true;
         } catch (error) {
             console.error('Login error:', error);
             return false;
@@ -788,10 +756,9 @@
         await fetchLinks();
         
         icon.classList.remove('animate-spin');
-        showToast('Dashboard updated', 'success');
     }
 
-    // --- Core Render Function ---
+    // --- Core Render Function (OPTIMIZED) ---
     async function render() {
         container.innerHTML = '';
         const q = document.getElementById('searchInput').value.toLowerCase();
@@ -807,7 +774,8 @@
         // Filter links
         const filtered = links.filter(l => {
             const matchSearch = l.url.toLowerCase().includes(q) || 
-                               (l.tags && l.tags.some(t => t.toLowerCase().includes(q)));
+                               (l.tags && l.tags.some(t => t.toLowerCase().includes(q))) ||
+                               l.group.toLowerCase().includes(q);
             const matchGroup = currentFilter === '' || l.group === currentFilter;
             return matchSearch && matchGroup;
         });
@@ -839,7 +807,7 @@
             header.className = 'flex items-center gap-3 mb-6 pl-1';
             header.innerHTML = `
                 <span class="w-2 h-2 rounded-full bg-violet-500 shadow-[0_0_10px_rgba(139,92,246,0.6)]"></span>
-                <h2 class="text-xs font-bold uppercase tracking-widest text-violet-600 dark:text-violet-400">${groupName}</h2>
+                <h2 class="text-xs font-bold uppercase tracking-widest text-violet-600 dark:text-violet-400">${groupName} <span class="text-violet-400/70">(${groups[groupName].length})</span></h2>
             `;
             section.appendChild(header);
 
@@ -847,10 +815,13 @@
             const grid = document.createElement('div');
             grid.className = 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6';
 
-            // Create cards for each link
+            // Create cards for each link (without metadata initially)
             for (const link of groups[groupName]) {
-                const card = await createLinkCard(link);
+                const card = createLinkCardSkeleton(link);
                 grid.appendChild(card);
+                
+                // Load metadata asynchronously
+                setTimeout(() => loadCardMetadata(card, link), 100);
             }
             
             section.appendChild(grid);
@@ -858,101 +829,171 @@
         }
     }
 
-    // Create individual link card
-    async function createLinkCard(link) {
+    // Create skeleton card (no metadata fetch)
+    function createLinkCardSkeleton(link) {
         const card = document.createElement('div');
         card.className = 'glass-card rounded-3xl p-6 relative group h-full opacity-0';
-        card.style.animation = `slideUp 0.5s ease-out forwards ${Math.random() * 0.2}s`;
-
-        // Initial skeleton loader
+        card.style.animation = `slideUp 0.5s ease-out forwards`;
+        card.dataset.url = link.url;
+        
+        const domain = extractDomain(link.url);
+        const safeUrl = link.url.replace(/'/g, "\\'");
+        const tagsHtml = (link.tags || []).map(t => 
+            `<span class="px-2 py-1 bg-violet-50/80 dark:bg-violet-900/20 border border-violet-100 dark:border-violet-800/30 text-xs font-medium text-violet-600 dark:text-violet-300 rounded-md">#${t}</span>`
+        ).join('');
+        
         card.innerHTML = `
-            <div class="w-full h-48 rounded-2xl skeleton mb-6"></div>
-            <div class="flex items-center gap-3 mb-4">
-                 <div class="w-12 h-12 rounded-full skeleton"></div>
-                 <div class="w-1/2 h-6 rounded-lg skeleton"></div>
+            <div class="relative mb-6 overflow-hidden rounded-2xl aspect-video bg-gradient-to-br from-violet-50 to-white dark:from-slate-800 dark:to-slate-900 border border-white/20 dark:border-white/5 group-hover:border-violet-200/50 transition-colors flex items-center justify-center">
+                <i class="fa-solid fa-globe text-3xl text-violet-200 dark:text-slate-600"></i>
+                <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                <div class="card-actions absolute top-4 right-4 flex gap-2">
+                    <button onclick="editLink('${safeUrl}')" class="w-10 h-10 rounded-full bg-white/20 dark:bg-black/80 backdrop-blur-md text-blue-500 shadow-lg border border-white/20 dark:border-white/10 flex items-center justify-center hover:bg-blue-500 hover:text-white transition-all" title="Edit">
+                        <i class="fa-solid fa-pen text-sm"></i>
+                    </button>
+                    <button onclick="promptDelete('${safeUrl}')" class="w-10 h-10 rounded-full bg-white/20 dark:bg-black/80 backdrop-blur-md text-red-500 shadow-lg border border-white/20 dark:border-white/10 flex items-center justify-center hover:bg-red-500 hover:text-white transition-all" title="Delete">
+                        <i class="fa-solid fa-trash text-sm"></i>
+                    </button>
+                </div>
             </div>
-            <div class="w-full h-3 rounded-lg skeleton mb-2"></div>
-            <div class="w-2/3 h-3 rounded-lg skeleton"></div>
-        `;
 
-        // Fetch metadata in background
-        setTimeout(async () => {
-            const meta = await fetchMeta(link.url);
+            <div class="flex-1">
+                <div class="flex items-start gap-3 mb-3">
+                    <div class="w-12 h-12 rounded-full bg-white dark:bg-slate-800 shadow-sm flex items-center justify-center border border-stone-100 dark:border-slate-700 overflow-hidden shrink-0 mt-1">
+                        <div class="w-6 h-6 rounded-full bg-violet-100 dark:bg-violet-900/30 flex items-center justify-center">
+                            <i class="fa-solid fa-link text-violet-400 dark:text-violet-500 text-xs"></i>
+                        </div>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <h3 class="text-lg font-bold text-stone-900 dark:text-white leading-snug tracking-tight truncate" title="${domain}">${domain}</h3>
+                        <p class="text-stone-500 dark:text-slate-400 text-xs mt-1 truncate">${link.url}</p>
+                    </div>
+                </div>
+                <p class="text-stone-500 dark:text-slate-400 text-sm line-clamp-2 leading-relaxed mb-6 h-10 italic">Loading description...</p>
+            </div>
+
+            <div class="mt-auto pt-5 border-t border-stone-100/50 dark:border-slate-700/50 flex items-center justify-between">
+                <div class="flex gap-2 flex-wrap">${tagsHtml}</div>
+                <div class="flex gap-2">
+                    <button onclick="copyToClipboard('${safeUrl}', this)" class="w-10 h-10 rounded-xl bg-stone-100 dark:bg-slate-700 text-stone-500 dark:text-slate-400 hover:bg-violet-100 hover:text-violet-600 dark:hover:bg-violet-900/30 dark:hover:text-violet-300 transition-colors flex items-center justify-center" title="Copy">
+                        <i class="fa-regular fa-copy text-sm"></i>
+                    </button>
+                    <a href="${link.url}" target="_blank" class="w-10 h-10 rounded-xl bg-violet-100 dark:bg-violet-600 text-violet-600 dark:text-white hover:scale-110 hover:shadow-lg hover:shadow-violet-500/30 transition-all duration-300 flex items-center justify-center" title="Visit">
+                        <i class="fa-solid fa-arrow-up-right-from-square text-sm"></i>
+                    </a>
+                </div>
+            </div>
+        `;
+        
+        return card;
+    }
+
+    // Load metadata for a card asynchronously
+    async function loadCardMetadata(card, link) {
+        try {
+            const meta = await fetchMetaWithCache(link.url);
             const domain = extractDomain(link.url);
             const title = meta.title || domain;
             const logoUrl = `https://www.google.com/s2/favicons?domain=${domain}&sz=64`;
-            const tagsHtml = (link.tags || []).map(t => 
-                `<span class="px-2 py-1 bg-violet-50/80 dark:bg-violet-900/20 border border-violet-100 dark:border-violet-800/30 text-xs font-medium text-violet-600 dark:text-violet-300 rounded-md">#${t}</span>`
-            ).join('');
-
-            // Escape quotes for HTML
-            const safeUrl = link.url.replace(/'/g, "\\'");
-            const safeTitle = title.replace(/"/g, '&quot;');
-            const safeDescription = (meta.description || 'No description available.').replace(/"/g, '&quot;');
-
-            card.innerHTML = `
-                <div class="relative mb-6 overflow-hidden rounded-2xl aspect-video bg-stone-100 dark:bg-slate-800/50 border border-white/20 dark:border-white/5 group-hover:border-violet-200/50 transition-colors">
-                    ${meta.image?.url 
-                        ? `<img src="${meta.image.url}" alt="${safeTitle}" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" onerror="this.style.display='none';">`
-                        : `<div class="w-full h-full flex items-center justify-center bg-gradient-to-br from-violet-50 to-white dark:from-slate-800 dark:to-slate-900"><i class="fa-solid fa-globe text-3xl text-violet-200 dark:text-slate-600"></i></div>`
-                    }
+            
+            // Update card content
+            const imgContainer = card.querySelector('div[class*="aspect-video"]');
+            const titleEl = card.querySelector('h3');
+            const descEl = card.querySelector('p[class*="line-clamp-2"]');
+            const logoContainer = card.querySelector('div[class*="rounded-full"]:first-child');
+            
+            if (meta.image?.url) {
+                imgContainer.innerHTML = `
+                    <img src="${meta.image.url}" alt="${title}" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex'">
+                    <div class="w-full h-full flex items-center justify-center bg-gradient-to-br from-violet-50 to-white dark:from-slate-800 dark:to-slate-900 hidden">
+                        <i class="fa-solid fa-globe text-3xl text-violet-200 dark:text-slate-600"></i>
+                    </div>
                     <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                    <div class="card-actions absolute top-4 right-4 flex gap-2">
-                        <button onclick="editLink('${safeUrl}')" class="w-10 h-10 rounded-full bg-white/20 dark:bg-black/80 backdrop-blur-md text-blue-500 shadow-lg border border-white/20 dark:border-white/10 flex items-center justify-center hover:bg-blue-500 hover:text-white transition-all" title="Edit">
-                            <i class="fa-solid fa-pen text-sm"></i>
-                        </button>
-                        <button onclick="promptDelete('${safeUrl}')" class="w-10 h-10 rounded-full bg-white/20 dark:bg-black/80 backdrop-blur-md text-red-500 shadow-lg border border-white/20 dark:border-white/10 flex items-center justify-center hover:bg-red-500 hover:text-white transition-all" title="Delete">
-                            <i class="fa-solid fa-trash text-sm"></i>
-                        </button>
+                    ${imgContainer.querySelector('.card-actions').outerHTML}
+                `;
+            }
+            
+            if (titleEl) {
+                titleEl.textContent = title;
+                titleEl.title = title;
+            }
+            
+            if (descEl) {
+                descEl.textContent = meta.description || 'No description available.';
+                descEl.classList.remove('italic');
+            }
+            
+            if (logoContainer) {
+                logoContainer.innerHTML = `
+                    <img src="${logoUrl}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex'" class="w-6 h-6 object-contain">
+                    <div class="w-6 h-6 rounded-full bg-violet-100 dark:bg-violet-900/30 flex items-center justify-center hidden">
+                        <i class="fa-solid fa-link text-violet-400 dark:text-violet-500 text-xs"></i>
                     </div>
-                </div>
-
-                <div class="flex-1">
-                    <div class="flex items-start gap-3 mb-3">
-                        <div class="w-12 h-12 rounded-full bg-white dark:bg-slate-800 shadow-sm flex items-center justify-center border border-stone-100 dark:border-slate-700 overflow-hidden shrink-0 mt-1">
-                            <img src="${logoUrl}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex'" class="w-6 h-6 object-contain">
-                            <i class="fa-solid fa-globe text-stone-300 dark:text-slate-600 hidden absolute text-xs"></i>
-                        </div>
-                        <h3 class="text-lg font-bold text-stone-900 dark:text-white leading-snug tracking-tight" title="${safeTitle}">${title}</h3>
-                    </div>
-                    <p class="text-stone-500 dark:text-slate-400 text-sm line-clamp-2 leading-relaxed mb-6 h-10">${safeDescription}</p>
-                </div>
-
-                <div class="mt-auto pt-5 border-t border-stone-100/50 dark:border-slate-700/50 flex items-center justify-between">
-                    <div class="flex gap-2 flex-wrap">${tagsHtml}</div>
-                    <div class="flex gap-2">
-                        <button onclick="copyToClipboard('${safeUrl}', this)" class="w-10 h-10 rounded-xl bg-stone-100 dark:bg-slate-700 text-stone-500 dark:text-slate-400 hover:bg-violet-100 hover:text-violet-600 dark:hover:bg-violet-900/30 dark:hover:text-violet-300 transition-colors flex items-center justify-center" title="Copy">
-                            <i class="fa-regular fa-copy text-sm"></i>
-                        </button>
-                        <a href="${link.url}" target="_blank" class="w-10 h-10 rounded-xl bg-violet-100 dark:bg-violet-600 text-violet-600 dark:text-white hover:scale-110 hover:shadow-lg hover:shadow-violet-500/30 transition-all duration-300 flex items-center justify-center" title="Visit">
-                            <i class="fa-solid fa-arrow-up-right-from-square text-sm"></i>
-                        </a>
-                    </div>
-                </div>
-            `;
-        }, 100);
-
-        return card;
+                `;
+            }
+            
+        } catch (error) {
+            console.log('Metadata load failed for:', link.url, error);
+            // Keep the skeleton UI
+        }
     }
 
     // Helper functions
     function extractDomain(url) {
         try {
             const urlObj = new URL(url);
-            return urlObj.hostname.replace('www.', '');
+            let domain = urlObj.hostname.replace('www.', '');
+            // Shorten long domains
+            if (domain.length > 30) {
+                domain = domain.substring(0, 27) + '...';
+            }
+            return domain;
         } catch {
-            return url;
+            return url.length > 30 ? url.substring(0, 27) + '...' : url;
         }
     }
 
-    async function fetchMeta(url) {
-        try {
-            const response = await fetch(`https://api.microlink.io/?url=${encodeURIComponent(url)}`);
-            const { data } = await response.json();
-            return data || {};
-        } catch { 
-            return {}; 
+    // Cached metadata fetch with rate limiting protection
+    async function fetchMetaWithCache(url) {
+        // Check cache first
+        if (metaCache.has(url)) {
+            return metaCache.get(url);
         }
+        
+        // Return empty object to avoid API calls (due to rate limiting)
+        const emptyMeta = {
+            title: extractDomain(url),
+            description: 'Website description not available.',
+            image: null
+        };
+        
+        metaCache.set(url, emptyMeta);
+        return emptyMeta;
+        
+        /* If you want to enable metadata fetching later:
+        try {
+            // Add delay to avoid rate limiting
+            await new Promise(resolve => setTimeout(resolve, Math.random() * 1000));
+            
+            const response = await fetch(`https://api.microlink.io/?url=${encodeURIComponent(url)}&timeout=5000`);
+            
+            if (response.status === 429) {
+                console.log('Rate limited for:', url);
+                return emptyMeta;
+            }
+            
+            const { data } = await response.json();
+            const meta = data || emptyMeta;
+            
+            // Cache the result
+            metaCache.set(url, meta);
+            return meta;
+            
+        } catch (error) {
+            console.log('Metadata fetch failed for:', url, error);
+            metaCache.set(url, emptyMeta);
+            return emptyMeta;
+        }
+        */
     }
 
     // --- Login Modal Functions ---
@@ -985,6 +1026,13 @@
         const idInput = document.getElementById('loginId').value;
         const passInput = document.getElementById('loginPass').value;
 
+        if (!idInput || !passInput) {
+            showToast('Please enter ID and password', 'error');
+            return;
+        }
+
+        showToast('Verifying credentials...', 'info');
+        
         if (await verifyLogin(idInput, passInput)) {
             closeLoginModal();
             enableEditMode();
@@ -1034,6 +1082,19 @@
         const group = document.getElementById('groupInput').value;
         const tags = document.getElementById('tagsInput').value.split(',').map(t => t.trim()).filter(Boolean).join(',');
         
+        // Validate URL
+        if (!isValidUrl(url)) {
+            showToast('Please enter a valid URL', 'error');
+            return;
+        }
+        
+        if (!group) {
+            showToast('Please select a group', 'error');
+            return;
+        }
+        
+        showToast('Adding link...', 'info');
+        
         if (await addLinkToSheet(url, group, tags)) {
             // Add to local state
             links.unshift({ 
@@ -1047,6 +1108,9 @@
                 links: links, 
                 timestamp: new Date().toISOString() 
             }));
+            
+            // Clear metadata cache for this URL
+            metaCache.delete(url);
             
             closeModal();
             await render();
@@ -1102,6 +1166,19 @@
             const group = document.getElementById('editGroupInput').value;
             const tags = document.getElementById('editTagsInput').value.split(',').map(t => t.trim()).filter(Boolean).join(',');
             
+            // Validate URL
+            if (!isValidUrl(newUrl)) {
+                showToast('Please enter a valid URL', 'error');
+                return;
+            }
+            
+            if (!group) {
+                showToast('Please select a group', 'error');
+                return;
+            }
+            
+            showToast('Updating link...', 'info');
+            
             if (await updateLinkInSheet(oldUrl, newUrl, group, tags)) {
                 // Update local state
                 links[currentEditIndex] = { 
@@ -1115,6 +1192,10 @@
                     links: links, 
                     timestamp: new Date().toISOString() 
                 }));
+                
+                // Clear caches
+                metaCache.delete(oldUrl);
+                metaCache.delete(newUrl);
                 
                 closeEditModal();
                 await render();
@@ -1151,22 +1232,29 @@
     }
 
     async function confirmDelete() {
-        if (urlToDelete && await deleteLinkFromSheet(urlToDelete)) {
-            // Remove from local state
-            links = links.filter(l => l.url !== urlToDelete);
+        if (urlToDelete) {
+            showToast('Deleting link...', 'info');
             
-            // Update localStorage
-            localStorage.setItem('essentialLinks_data', JSON.stringify({ 
-                links: links, 
-                timestamp: new Date().toISOString() 
-            }));
-            
-            closeDeleteModal();
-            await render();
-            showToast('Link deleted successfully', 'error');
-        } else {
-            showToast('Failed to delete link. Please try again.', 'error');
-            closeDeleteModal();
+            if (await deleteLinkFromSheet(urlToDelete)) {
+                // Remove from local state
+                links = links.filter(l => l.url !== urlToDelete);
+                
+                // Update localStorage
+                localStorage.setItem('essentialLinks_data', JSON.stringify({ 
+                    links: links, 
+                    timestamp: new Date().toISOString() 
+                }));
+                
+                // Clear cache
+                metaCache.delete(urlToDelete);
+                
+                closeDeleteModal();
+                await render();
+                showToast('Link deleted successfully', 'error');
+            } else {
+                showToast('Failed to delete link. Please try again.', 'error');
+                closeDeleteModal();
+            }
         }
     }
 
@@ -1230,18 +1318,32 @@
         }
     });
 
-    // Search input listener
+    // Search input listener with debounce
+    let searchTimeout;
     document.getElementById('searchInput').addEventListener('input', () => {
-        render();
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(() => {
+            render();
+        }, 300);
     });
 
     // --- Utility Functions ---
+    function isValidUrl(string) {
+        try {
+            new URL(string);
+            return true;
+        } catch (_) {
+            return false;
+        }
+    }
+
     function copyToClipboard(text, btnElement) {
         navigator.clipboard.writeText(text).then(() => {
             const icon = btnElement.querySelector('i');
+            const originalClass = icon.className;
             icon.className = 'fa-solid fa-check text-sm text-emerald-500';
             setTimeout(() => {
-                icon.className = 'fa-regular fa-copy text-sm';
+                icon.className = originalClass;
             }, 1500);
             showToast('Copied to clipboard', 'success');
         }).catch(err => {
@@ -1263,6 +1365,9 @@
         } else if (type === 'error') {
             colors = 'bg-white/90 dark:bg-slate-800/90 border-l-4 border-red-500 text-stone-800 dark:text-white';
             icon = '<i class="fa-solid fa-circle-exclamation text-red-500"></i>';
+        } else if (type === 'warning') {
+            colors = 'bg-white/90 dark:bg-slate-800/90 border-l-4 border-amber-500 text-stone-800 dark:text-white';
+            icon = '<i class="fa-solid fa-triangle-exclamation text-amber-500"></i>';
         } else {
             colors = 'bg-white/90 dark:bg-slate-800/90 border-l-4 border-violet-500 text-stone-800 dark:text-white';
             icon = '<i class="fa-solid fa-circle-info text-violet-500"></i>';
@@ -1302,36 +1407,25 @@
         showLoader();
         await fetchLinks();
         hideLoader();
-        
-        // Test API connection
-        setTimeout(async () => {
-            try {
-                const result = await fetchFromGoogleSheets({ action: 'ping' });
-                if (result.success) {
-                    console.log('API connection successful');
-                }
-            } catch (error) {
-                console.log('API connection test failed');
-            }
-        }, 1000);
     });
 
-    // Add CSS for slideUp animation if not already defined
-    if (!document.querySelector('#slideUpAnimation')) {
-        const style = document.createElement('style');
-        style.id = 'slideUpAnimation';
-        style.textContent = `
-            @keyframes slideUp {
-                0% { opacity: 0; transform: translateY(20px); }
-                100% { opacity: 1; transform: translateY(0); }
-            }
-            @keyframes slideInRight {
-                0% { opacity: 0; transform: translateX(20px); }
-                100% { opacity: 1; transform: translateX(0); }
-            }
-        `;
-        document.head.appendChild(style);
-    }
+    // Make functions available globally
+    window.openModal = openModal;
+    window.closeModal = closeModal;
+    window.openEditModal = openEditModal;
+    window.closeEditModal = closeEditModal;
+    window.editLink = editLink;
+    window.promptDelete = promptDelete;
+    window.confirmDelete = confirmDelete;
+    window.closeDeleteModal = closeDeleteModal;
+    window.openLoginModal = openLoginModal;
+    window.closeLoginModal = closeLoginModal;
+    window.refreshData = refreshData;
+    window.toggleTheme = toggleTheme;
+    window.toggleDropdown = toggleDropdown;
+    window.setFilter = setFilter;
+    window.resetFilters = resetFilters;
+    window.copyToClipboard = copyToClipboard;
 </script>
 </body>
 </html>
