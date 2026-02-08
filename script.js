@@ -321,10 +321,10 @@ async function createLinkCard(link) {
                 ${imageHtml}
                 <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                 <div class="card-actions absolute top-4 right-4 flex gap-2">
-                    <button onclick="editLink('${safeUrl}')" class="w-10 h-10 rounded-full bg-white/20 dark:bg-black/80 backdrop-blur-md text-blue-500 shadow-lg border border-white/20 dark:border-white/10 flex items-center justify-center hover:bg-blue-500 hover:text-white transition-all" title="Edit">
+                    <button onclick="editLink('${safeUrl}')" class="w-10 h-10 rounded-full bg-white/20 dark:bg-black/80 backdrop-blur-sm text-blue-500 shadow-lg border border-white/20 dark:border-white/10 flex items-center justify-center hover:bg-blue-500 hover:text-white transition-all" title="Edit">
                         <i class="fa-solid fa-pen text-sm"></i>
                     </button>
-                    <button onclick="promptDelete('${safeUrl}')" class="w-10 h-10 rounded-full bg-white/20 dark:bg-black/80 backdrop-blur-md text-red-500 shadow-lg border border-white/20 dark:border-white/10 flex items-center justify-center hover:bg-red-500 hover:text-white transition-all" title="Delete">
+                    <button onclick="promptDelete('${safeUrl}')" class="w-10 h-10 rounded-full bg-white/20 dark:bg-black/80 backdrop-blur-sm text-red-500 shadow-lg border border-white/20 dark:border-white/10 flex items-center justify-center hover:bg-red-500 hover:text-white transition-all" title="Delete">
                         <i class="fa-solid fa-trash text-sm"></i>
                     </button>
                 </div>
@@ -794,7 +794,7 @@ function showToast(message, type = 'info') {
         icon = '<i class="fa-solid fa-circle-info text-violet-500"></i>';
     }
 
-    toast.className = `pointer-events-auto flex items-center gap-3 px-5 py-3 rounded-lg shadow-xl backdrop-blur-md transform transition-all duration-300 ${colors}`;
+    toast.className = `pointer-events-auto flex items-center gap-3 px-5 py-3 rounded-lg shadow-xl backdrop-blur-sm transform transition-all duration-300 ${colors}`;
     toast.style.animation = 'slideUp 0.3s ease-out forwards';
 
     toast.innerHTML = `
