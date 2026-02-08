@@ -151,14 +151,13 @@
         
         /* --- FIX FOR DOUBLE BORDER --- */
         #searchInput {
-            caret-color: #8b5cf6; /* Make caret nice violet */
+            caret-color: #8b5cf6;
         }
         #searchInput:focus {
             background-color: rgba(255, 255, 255, 0.4);
-            outline: none !important; /* Force remove browser outline */
-            box-shadow: none !important; /* Force remove browser shadow */
+            outline: none !important;
+            box-shadow: none !important;
         }
-        /* Also handle visible focus for accessibility if desired, but here we want custom only */
         #searchInput:focus-visible {
             outline: none !important;
             box-shadow: none !important;
@@ -317,7 +316,7 @@
                 </div>
 
                 <!-- Edit Mode Toggle -->
-                <div class="hidden sm:flex items-center gap-2 px-2.5 py-1 rounded-full glass hover:bg-white/80 dark:hover:bg-slate-700/50 transition-colors shrink-0">
+                <div class="hidden sm:flex items-center gap-2 px-2.5 py-1 rounded-full glass dark:bg-[#2a3444] hover:bg-white/80 dark:hover:bg-slate-700/50 transition-colors shrink-0">
                     <span class="text-[10px] font-bold text-stone-500 dark:text-stone-400 uppercase tracking-wide">Edit</span>
                     <label class="toggle-switch"><input type="checkbox" id="editToggle"><span class="toggle-slider"></span></label>
                 </div>
@@ -327,18 +326,18 @@
                 </button>
 
                 <!-- Refresh -->
-                <button onclick="refreshData()" class="w-8 h-8 bg-violet-100 rounded-full flex items-center justify-center text-stone-500 dark:text-slate-400 hover:bg-stone-200 dark:hover:bg-slate-700/50 transition-colors shrink-0">
+                <button onclick="refreshData()" class="w-8 h-8 bg-violet-50 dark:bg-[#2a3444] rounded-full flex items-center justify-center text-stone-500 dark:text-slate-400 hover:bg-stone-200 dark:hover:bg-slate-700/50 transition-colors shrink-0">
                     <i class="fa-solid fa-rotate-right text-[10px] transition-transform duration-500" id="refreshIcon"></i>
                 </button>
 
                 <div class="h-4 w-px bg-stone-300 dark:bg-slate-700 mx-1 shrink-0"></div>
 
-                <button onclick="toggleTheme()" class="w-8 h-8 bg-violet-100 rounded-full flex items-center justify-center text-stone-500 dark:text-slate-400 hover:bg-stone-200 dark:hover:bg-slate-700/50 transition-colors shrink-0">
+                <button onclick="toggleTheme()" class="w-8 h-8 bg-violet-50 dark:bg-[#2a3444] rounded-full flex items-center justify-center text-stone-500 dark:text-slate-400 hover:bg-stone-200 dark:hover:bg-slate-700/50 transition-colors shrink-0">
                     <i class="fa-regular fa-sun text-xs dark:hidden"></i>
                     <i class="fa-regular fa-moon text-xs hidden dark:block"></i>
                 </button>
 
-                <button onclick="openModal()" class="bg-stone-900 dark:bg-white text-white dark:text-stone-900 px-4 py-1.5 rounded-full text-xs font-bold shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300 flex items-center gap-1.5 shrink-0">
+                <button onclick="openModal()" class="bg-stone-900 dark:bg-[#2a3444] text-white dark:text-white-900 px-4 py-1.5 rounded-full text-xs font-bold shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300 flex items-center gap-1.5 shrink-0">
                     <i class="fa-solid fa-plus text-[10px]"></i> <span class="hidden sm:inline">Add</span>
                 </button>
             </div>
@@ -466,6 +465,33 @@
             </div>
         </div>
     </div>
+
+    <!-- Admin Login Modal (NEW FEATURE) -->
+    <div id="loginModal" class="fixed inset-0 z-[80] hidden">
+        <div class="absolute inset-0 bg-stone-900/40 dark:bg-black/60 backdrop-blur-sm transition-opacity opacity-0" id="loginModalBackdrop"></div>
+        <div class="absolute inset-0 flex items-center justify-center p-4">
+            <div class="glass w-full max-w-xs rounded-2xl shadow-2xl transform scale-95 opacity-0 transition-all duration-300 overflow-hidden text-center p-6" id="loginModalContent">
+                <div class="w-12 h-12 rounded-full bg-violet-50 dark:bg-violet-900/20 text-violet-600 dark:text-violet-400 flex items-center justify-center mx-auto mb-4 animate-bounce">
+                    <i class="fa-solid fa-lock text-lg"></i>
+                </div>
+                <h3 class="text-lg font-bold text-stone-900 dark:text-white mb-1">Admin Access</h3>
+                <p class="text-stone-500 dark:text-slate-400 text-xs mb-5">Enter ID and Password to edit links.</p>
+                
+                <form id="loginForm" class="space-y-3 text-left">
+                    <div>
+                        <label class="text-[10px] font-bold uppercase tracking-wider text-stone-400 dark:text-slate-500 ml-1">ID</label>
+                        <input type="text" id="loginId" placeholder="admin" class="w-full px-4 py-2 rounded-lg bg-white/50 dark:bg-slate-800/50 border border-stone-200 dark:border-slate-700 focus:ring-2 focus:ring-violet-500/20 outline-none transition-all text-sm text-stone-900 dark:text-white">
+                    </div>
+                    <div>
+                        <label class="text-[10px] font-bold uppercase tracking-wider text-stone-400 dark:text-slate-500 ml-1">Password</label>
+                        <input type="password" id="loginPass" placeholder="1234" class="w-full px-4 py-2 rounded-lg bg-white/50 dark:bg-slate-800/50 border border-stone-200 dark:border-slate-700 focus:ring-2 focus:ring-violet-500/20 outline-none transition-all text-sm text-stone-900 dark:text-white">
+                    </div>
+                    <button type="submit" class="w-full py-2 rounded-lg bg-violet-600 hover:bg-violet-700 text-white text-xs font-bold shadow-lg hover:shadow-violet-500/30 transform active:scale-95 transition-all mt-2">Unlock</button>
+                </form>
+                <button onclick="closeLoginModal()" class="mt-4 w-full text-xs font-medium text-stone-500 hover:text-stone-700 dark:hover:text-stone-300 transition-colors">Cancel</button>
+            </div>
+        </div>
+    </div>
     
 
     <script>
@@ -474,7 +500,7 @@
             { url: 'https://uiverse.io/', group: 'Design', tags: ['ui', 'css'] },
             { url: 'https://www.flaticon.com/', group: 'Design', tags: ['icons', 'svg'] },
             { url: 'https://github.com/', group: 'Dev', tags: ['code', 'git'] },
-            { url: 'https://tailwindcss.com/', group: 'Dev', tags: ['css', 'framework'] },
+            {url: 'https://tailwindcss.com/', group: 'Dev', tags: ['css', 'framework'] },
             { url: 'https://dribbble.com/', group: 'Inspiration', tags: ['design', 'art'] },
             { url: 'https://figma.com/', group: 'Tools', tags: ['design', 'tool'] }
         ];
@@ -484,6 +510,12 @@
         const container = document.getElementById('mainContainer');
         const emptyState = document.getElementById('emptyState');
         const loadingPopup = document.getElementById('loadingPopup');
+
+        // --- Hardcoded Admin Credentials (You can change these) ---
+        const ADMIN_CREDS = {
+            id: 'admin',
+            pass: '1234'
+        };
 
         // --- Loader Logic ---
         function showLoader() {
@@ -498,15 +530,84 @@
             }, 500);
         }
 
-        // --- Edit Mode Logic ---
+        // --- Edit Mode Logic WITH SECURITY ---
         const editToggle = document.getElementById('editToggle');
+        
         editToggle.addEventListener('change', (e) => {
             if (e.target.checked) {
-                document.body.classList.add('edit-mode');
-                showToast('Edit Mode: Active', 'info');
+                // User wants to turn ON -> Check auth
+                // 1. Immediately uncheck to prevent "stuck" state if they cancel or fail
+                e.target.checked = false;
+                // 2. Open Login Modal
+                openLoginModal();
             } else {
-                document.body.classList.remove('edit-mode');
+                // User wants to turn OFF
+                disableEditMode();
+            }
+        });
+
+        function enableEditMode() {
+            document.body.classList.add('edit-mode');
+            editToggle.checked = true; // Visually turn on the toggle
+            showToast('Edit Mode: Active', 'success');
+        }
+
+        function disableEditMode() {
+            document.body.classList.remove('edit-mode');
+            editToggle.checked = false;
+            // Only show toast if it was actually on, to avoid noise on initial load
+            if(document.body.classList.contains('edit-mode')) {
                 showToast('Edit Mode: Off', 'info');
+            }
+        }
+
+        // --- Login Modal Logic ---
+        const loginModal = document.getElementById('loginModal');
+        const loginBackdrop = document.getElementById('loginModalBackdrop');
+        const loginContent = document.getElementById('loginModalContent');
+
+        function openLoginModal() {
+            loginModal.classList.remove('hidden');
+            setTimeout(() => {
+                loginBackdrop.classList.remove('opacity-0');
+                loginContent.classList.remove('scale-95', 'opacity-0');
+                loginContent.classList.add('scale-100', 'opacity-100');
+            }, 10);
+            document.getElementById('loginId').focus();
+        }
+
+        function closeLoginModal() {
+            loginBackdrop.classList.add('opacity-0');
+            loginContent.classList.remove('scale-100', 'opacity-100');
+            loginContent.classList.add('scale-95', 'opacity-0');
+            setTimeout(() => {
+                loginModal.classList.add('hidden');
+                document.getElementById('loginForm').reset();
+            }, 300);
+        }
+
+        document.getElementById('loginForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const idInput = document.getElementById('loginId').value;
+            const passInput = document.getElementById('loginPass').value;
+
+            if (idInput === ADMIN_CREDS.id && passInput === ADMIN_CREDS.pass) {
+                // Success
+                closeLoginModal();
+                enableEditMode();
+            } else {
+                // Failure
+                showToast('Invalid ID or Password', 'error');
+                // Shake animation logic could go here
+                const content = document.getElementById('loginModalContent');
+                content.classList.add('translate-x-[-10px]');
+                setTimeout(() => {
+                    content.classList.remove('translate-x-[-10px]');
+                    content.classList.add('translate-x-[10px]');
+                    setTimeout(() => {
+                        content.classList.remove('translate-x-[10px]');
+                    }, 100);
+                }, 100);
             }
         });
 
@@ -528,12 +629,10 @@
             container.innerHTML = '';
             const q = document.getElementById('searchInput').value.toLowerCase();
             
-            // UX: Toggle clear button
             const clearBtn = document.getElementById('clearSearch');
             if (q.length > 0) clearBtn.classList.remove('hidden');
             else clearBtn.classList.add('hidden');
 
-            // Filter
             const filtered = links.filter(l => {
                 const matchSearch = l.url.toLowerCase().includes(q) || l.tags.some(t => t.toLowerCase().includes(q));
                 const matchGroup = currentFilter === '' || l.group === currentFilter;
@@ -549,7 +648,6 @@
                 emptyState.classList.remove('flex');
             }
 
-            // Grouping Rendering
             const groups = {};
             filtered.forEach(l => { if(!groups[l.group]) groups[l.group] = []; groups[l.group].push(l); });
 
@@ -565,7 +663,6 @@
                 `;
                 section.appendChild(header);
 
-                // Standard Grid
                 const grid = document.createElement('div');
                 grid.className = 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6';
 
@@ -574,7 +671,6 @@
                     card.className = 'glass-card rounded-3xl p-6 relative group h-full opacity-0';
                     card.style.animation = `slideUp 0.5s ease-out forwards ${Math.random() * 0.2}s`;
 
-                    // Skeleton Load
                     card.innerHTML = `
                         <div class="w-full h-48 rounded-2xl skeleton mb-6"></div>
                         <div class="flex items-center gap-3 mb-4">
@@ -586,14 +682,10 @@
                     `;
                     grid.appendChild(card);
 
-                    // Fetch Meta
                     const meta = await fetchMeta(link.url);
                     const domain = new URL(link.url).hostname.replace('www.', '');
                     const title = meta.title || domain;
-                    
-                    // Get Logo via Google Service
                     const logoUrl = `https://www.google.com/s2/favicons?domain=${domain}&sz=64`;
-                    
                     const tagsHtml = link.tags.map(t => `<span class="px-2 py-1 bg-violet-50/80 dark:bg-violet-900/20 border border-violet-100 dark:border-violet-800/30 text-xs font-medium text-violet-600 dark:text-violet-300 rounded-md">#${t}</span>`).join('');
 
                     card.innerHTML = `
@@ -602,10 +694,7 @@
                                 ? `<img src="${meta.image.url}" alt="${title}" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105">`
                                 : `<div class="w-full h-full flex items-center justify-center bg-gradient-to-br from-violet-50 to-white dark:from-slate-800 dark:to-slate-900"><i class="fa-solid fa-globe text-3xl text-violet-200 dark:text-slate-600"></i></div>`
                             }
-                            
                             <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-
-                            <!-- Smooth Edit/Delete Buttons (Toggle Only) -->
                             <div class="card-actions absolute top-4 right-4 flex gap-2">
                                 <button onclick="editLink('${link.url}')" class="w-10 h-10 rounded-full bg-white/20 dark:bg-black/80 backdrop-blur-md text-blue-500 shadow-lg border border-white/20 dark:border-white/10 flex items-center justify-center hover:bg-blue-500 hover:text-white transition-all" title="Edit">
                                     <i class="fa-solid fa-pen text-sm"></i>
@@ -617,17 +706,13 @@
                         </div>
 
                         <div class="flex-1">
-                            <!-- Header with Fixed Rounded Logo -->
                             <div class="flex items-start gap-3 mb-3">
-                                <!-- Fixed Width/Height/Rounded Logo Container -->
                                 <div class="w-12 h-12 rounded-full bg-white dark:bg-slate-800 shadow-sm flex items-center justify-center border border-stone-100 dark:border-slate-700 overflow-hidden shrink-0 mt-1">
                                     <img src="${logoUrl}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex'" class="w-6 h-6 object-contain">
                                     <i class="fa-solid fa-globe text-stone-300 dark:text-slate-600 hidden absolute text-xs"></i>
                                 </div>
-                                <!-- Title (No Truncation) -->
                                 <h3 class="text-lg font-bold text-stone-900 dark:text-white leading-snug tracking-tight" title="${title}">${title}</h3>
                             </div>
-                            
                             <p class="text-stone-500 dark:text-slate-400 text-sm line-clamp-2 leading-relaxed mb-6 h-10">${meta.description || 'No description available.'}</p>
                         </div>
 
@@ -664,7 +749,6 @@
             render();
         });
 
-        // Dropdown Logic (Smooth)
         const dropdownWrapper = document.getElementById('dropdownWrapper');
         const dropdownMenu = document.getElementById('dropdownMenu');
         const chevron = document.getElementById('chevron');
@@ -672,33 +756,28 @@
         function toggleDropdown() {
             const isHidden = dropdownMenu.classList.contains('hidden');
             if (isHidden) {
-                // Open
                 dropdownMenu.classList.remove('hidden');
-                // Small delay to ensure display:block applies before transition
                 requestAnimationFrame(() => {
                     dropdownMenu.classList.remove('dropdown-hidden');
                     dropdownMenu.classList.add('dropdown-visible');
                     chevron.style.transform = 'rotate(180deg)';
                 });
             } else {
-                // Close
                 dropdownMenu.classList.remove('dropdown-visible');
                 dropdownMenu.classList.add('dropdown-hidden');
                 chevron.style.transform = 'rotate(0deg)';
-                
-                // Wait for transition to finish before hiding
                 setTimeout(() => {
                     if (dropdownMenu.classList.contains('dropdown-hidden')) {
                         dropdownMenu.classList.add('hidden');
                     }
-                }, 200); // Matches CSS transition duration
+                }, 200);
             }
         }
 
         function setFilter(val) {
             currentFilter = val;
             document.getElementById('currentFilter').textContent = val === '' ? 'All' : val;
-            toggleDropdown(); // This will smoothly close it
+            toggleDropdown(); 
             render();
         }
 
@@ -709,7 +788,6 @@
 
         window.addEventListener('click', (e) => {
             if (!dropdownWrapper.contains(e.target)) {
-                // If clicking outside and dropdown is visible, close it
                 if (!dropdownMenu.classList.contains('hidden')) {
                      dropdownMenu.classList.remove('dropdown-visible');
                      dropdownMenu.classList.add('dropdown-hidden');
