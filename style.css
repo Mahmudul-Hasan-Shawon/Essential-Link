@@ -1,6 +1,9 @@
 /* --- Core Aesthetic --- */
 body {
-    background: linear-gradient(135deg, #fafaf9 0%, #f3f4f6 100%);
+background: #f6f6ff;
+
+
+
     min-height: 100vh;
     color: #1c1917;
     padding-bottom: 100px;
@@ -53,7 +56,7 @@ body {
 
 /* --- Card Styling --- */
 .glass-card {
-    background: rgba(255, 255, 255, 0.6);
+    background: rgba(255, 255, 255, 0.8);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
     border: 1px solid rgba(255, 255, 255, 0.3);

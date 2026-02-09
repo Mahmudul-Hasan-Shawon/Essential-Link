@@ -354,7 +354,7 @@ async function createLinkCard(link) {
                     <button onclick="copyToClipboard('${safeUrl}', this)" class="w-10 h-10 rounded-xl bg-stone-100 dark:bg-slate-700 text-stone-500 dark:text-slate-400 hover:bg-violet-100 hover:text-violet-600 dark:hover:bg-violet-900/30 dark:hover:text-violet-300 transition-colors flex items-center justify-center" title="Copy">
                         <i class="fa-regular fa-copy text-sm"></i>
                     </button>
-                    <a href="${link.url}" target="_blank" class="w-10 h-10 rounded-xl bg-violet-100 dark:bg-violet-600 text-violet-600 dark:text-white hover:scale-110 hover:shadow-lg hover:shadow-violet-500/30 transition-all duration-300 flex items-center justify-center" title="Visit">
+                    <a href="${link.url}" target="_blank" class="w-10 h-10 rounded-xl bg-violet-50 dark:bg-violet-600 text-violet-600 dark:text-white hover:bg-violet-100 transition-all duration-300 flex items-center justify-center" title="Visit">
                         <i class="fa-solid fa-arrow-up-right-from-square text-sm"></i>
                     </a>
                 </div>
