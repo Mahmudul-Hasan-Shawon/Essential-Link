@@ -256,12 +256,36 @@ async function render() {
         section.className = 'mb-12 animate-slide-up';
 
         const header = document.createElement('div');
-        header.className = 'flex items-center gap-3 mb-6 pl-1';
-        header.innerHTML = `
-                <span class="w-2 h-2 rounded-full bg-violet-500 shadow-[0_0_10px_rgba(139,92,246,0.6)]"></span>
-                <h2 class="text-xs font-bold uppercase tracking-widest text-violet-600 dark:text-violet-400">${groupName} <span class="text-violet-400/70">(${groups[groupName].length})</span></h2>
-            `;
-        section.appendChild(header);
+header.className = `
+    inline-flex items-center gap-3 px-4 py-1.5 mb-6 rounded-full
+    bg-gradient-to-r from-violet-100/20 to-fuchsia-100/60
+    dark:from-violet-900/20 dark:to-fuchsia-900/30
+    backdrop-blur-md
+    ring-1 ring-white/60 dark:ring-white/10
+    shadow-[0_8px_25px_rgba(139,92,246,0.25)]
+    hover:shadow-[0_10px_35px_rgba(139,92,246,0.35)]
+    transition-all duration-300
+`;
+
+header.innerHTML = `
+    <span class="relative flex w-2.5 h-2.5">
+        <span class="absolute inline-flex h-full w-full rounded-full
+                     bg-violet-500 opacity-75 animate-ping"></span>
+        <span class="relative inline-flex w-2.5 h-2.5 rounded-full
+                     bg-violet-600"></span>
+    </span>
+
+    <h2 class="text-[11px] font-bold uppercase tracking-[0.25em]
+               text-violet-700 dark:text-violet-200">
+        ${groupName}
+        <span class="ml-1 text-violet-500 dark:text-violet-400">
+            (${groups[groupName].length})
+        </span>
+    </h2>
+`;
+
+section.appendChild(header);
+
 
         const grid = document.createElement('div');
         grid.className = 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6';
