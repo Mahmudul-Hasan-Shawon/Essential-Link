@@ -116,30 +116,29 @@ dark:shadow-[0_8px_30px_rgba(0,0,0,0.35)]
                 </div>
             </div>
 
-            <!-- Controls -->
-            <div class="flex items-center gap-2 sm:gap-3 flex-1 justify-end">
-
-                <!-- Animated Search Bar -->
-                <div class="relative w-full max-w-[200px] lg:max-w-xs group">
+            <!-- Animated Search Bar -->
+            <div class="relative w-full max-w-[200px] lg:max-w-xs group flex-1 max-w-md mx-4">
+                <div
+                    class="relative rounded-full overflow-hidden animate-border-glow transition-all duration-300 h-9">
                     <div
-                        class="relative rounded-full overflow-hidden animate-border-glow transition-all duration-300 h-9">
-                        <div
-                            class="absolute inset-0 bg-gradient-to-r from-transparent via-transparent to-transparent animate-gradient-flow opacity-20">
-                        </div>
-                        <div class="absolute inset-0 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm"></div>
-                        <div class="relative z-10 flex items-center px-2.5 h-full">
-                            <i
-                                class="fa-solid fa-search text-gray-400 dark:text-gray-500 text-xs animate-icon-glow mr-2"></i>
-                            <input type="text" id="searchInput"
-                                class="w-full bg-transparent text-gray-800 dark:text-white placeholder-gray-500 border-none focus:outline-none text-sm transition-all duration-300 h-full"
-                                placeholder="Search links...">
-                            <button id="clearSearch" class="hidden text-gray-400 hover:text-red-400 transition-colors">
-                                <i class="fa-solid fa-times-circle text-xs"></i>
-                            </button>
-                        </div>
+                        class="absolute inset-0 bg-gradient-to-r from-transparent via-transparent to-transparent animate-gradient-flow opacity-20">
+                    </div>
+                    <div class="absolute inset-0 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm"></div>
+                    <div class="relative z-10 flex items-center px-2.5 h-full">
+                        <i
+                            class="fa-solid fa-search text-gray-400 dark:text-gray-500 text-xs animate-icon-glow mr-2"></i>
+                        <input type="text" id="searchInput"
+                            class="w-full bg-transparent text-gray-800 dark:text-white placeholder-gray-500 border-none focus:outline-none text-sm transition-all duration-300 h-full"
+                            placeholder="Search links...">
+                        <button id="clearSearch" class="hidden text-gray-400 hover:text-red-400 transition-colors">
+                            <i class="fa-solid fa-times-circle text-xs"></i>
+                        </button>
                     </div>
                 </div>
+            </div>
 
+            <!-- Controls -->
+            <div class="flex items-center gap-2 sm:gap-3 shrink-0 justify-end">
                 <!-- Filter Dropdown -->
                 <div class="relative z-50 shrink-0" id="dropdownWrapper">
                     <button onclick="toggleDropdown()"
@@ -257,7 +256,7 @@ dark:shadow-[0_8px_30px_rgba(0,0,0,0.35)]
         <div class="absolute inset-0 bg-stone-900/20 dark:bg-black/40 backdrop-blur-sm transition-opacity opacity-0"
             id="modalBackdrop"></div>
         <div class="absolute inset-0 flex items-center justify-center p-4">
-            <div class="glass w-full max-w-sm rounded-2xl shadow-2xl transform scale-95 opacity-0 transition-all duration-300 overflow-hidden"
+            <div class="glass bg-white w-full max-w-sm rounded-2xl shadow-2xl transform scale-95 opacity-0 transition-all duration-300 overflow-hidden"
                 id="modalContent">
                 <div class="p-5">
                     <div class="flex justify-between items-center mb-5">
@@ -395,7 +394,7 @@ dark:shadow-[0_8px_30px_rgba(0,0,0,0.35)]
         <div class="absolute inset-0 bg-stone-900/40 dark:bg-black/60 backdrop-blur-sm transition-opacity opacity-0"
             id="loginModalBackdrop"></div>
         <div class="absolute inset-0 flex items-center justify-center p-4">
-            <div class="glass w-full max-w-xs rounded-2xl shadow-2xl transform scale-95 opacity-0 transition-all duration-300 overflow-hidden text-center p-6"
+            <div class="glass bg-white w-full max-w-xs rounded-2xl shadow-2xl transform scale-95 opacity-0 transition-all duration-300 overflow-hidden text-center p-6"
                 id="loginModalContent">
                 <div
                     class="w-12 h-12 rounded-full bg-violet-50 dark:bg-violet-900/20 text-violet-600 dark:text-violet-400 flex items-center justify-center mx-auto mb-4 animate-bounce">

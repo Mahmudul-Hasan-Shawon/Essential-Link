@@ -11,7 +11,7 @@ background: #f6f6ff;
 
 /* Dark Mode Override */
 .dark body {
-    background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+    background: #11071f;
     color: #f8fafc;
 }
 
@@ -114,19 +114,19 @@ body.edit-mode .card-actions {
 
 @keyframes border-glow {
     0% {
-        box-shadow: 0 0 0 1px rgba(96, 165, 250, 0.2), 0 0 15px rgba(96, 165, 250, 0.1), inset 0 0 15px rgba(255, 255, 255, 0.5);
+        box-shadow: 0 0 0 2px rgba(96, 165, 250, 0.3), 0 0 20px rgba(96, 165, 250, 0.15), inset 0 0 15px rgba(255, 255, 255, 0.5);
     }
 
     33% {
-        box-shadow: 0 0 0 1px rgba(167, 139, 250, 0.2), 0 0 15px rgba(167, 139, 250, 0.1), inset 0 0 15px rgba(255, 255, 255, 0.5);
+        box-shadow: 0 0 0 2px rgba(167, 139, 250, 0.3), 0 0 20px rgba(167, 139, 250, 0.15), inset 0 0 15px rgba(255, 255, 255, 0.5);
     }
 
     66% {
-        box-shadow: 0 0 0 1px rgba(248, 113, 113, 0.2), 0 0 15px rgba(248, 113, 113, 0.1), inset 0 0 15px rgba(255, 255, 255, 0.5);
+        box-shadow: 0 0 0 2px rgba(248, 113, 113, 0.3), 0 0 20px rgba(248, 113, 113, 0.15), inset 0 0 15px rgba(255, 255, 255, 0.5);
     }
 
     100% {
-        box-shadow: 0 0 0 1px rgba(96, 165, 250, 0.2), 0 0 15px rgba(96, 165, 250, 0.1), inset 0 0 15px rgba(255, 255, 255, 0.5);
+        box-shadow: 0 0 0 2px rgba(96, 165, 250, 0.3), 0 0 20px rgba(96, 165, 250, 0.15), inset 0 0 15px rgba(255, 255, 255, 0.5);
     }
 }
 
